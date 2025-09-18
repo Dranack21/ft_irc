@@ -7,10 +7,10 @@
 #include <vector>
 #include <map>
 #include <fcntl.h>
+#include <poll.h>
 #include <cstdlib>
 #include <sys/socket.h>
-
-
+#include <cerrno>
 struct in_addr2
 {
 	in_addr_t	s_addr = INADDR_ANY;
@@ -20,17 +20,39 @@ struct s_a
 {
 	sa_family_t 		sin_family = AF_INET;	///protocol IPV4
 	in_port_t			sin_port;				//16bytes int that represents port number we need to convert using htons I think
-    struct	in_addr2	sin_adrr;		//32 BIT IPV4 ADRESS
+    struct	in_addr2	sin_adrr;				//32 BIT IPV4 ADRESS
 };
+
+
 class Server_class
 {
 	private:
 		struct s_a			socket_addr;
-		std::vector<int>	clients;
+		std::vector<pollfd>	fds;
 	public:
 		int					Server_socket;
 		Server_class();
 		~Server_class();
-		void Setup_server(int port);
+		void	Setup_server(int port);
+		void	Accept_and_poll();
+		void	read_message(std::string buffer);
 };
 
+// / int poll(struct pollfd *fds, nfds_t nfds, int timeout);
+
+// The function poll takes an array of pollfd, checks each fd for the event specified in events and write what actually happened in revents
+
+
+// class Client    
+// {
+//     private:
+//         int fd;
+//         std::string username;
+//         std::string nickname;
+//         std::string addr_ip;
+
+//     public:
+//         Client();
+//         Client(std::string username, std::string nickname);
+//         ~Client();
+// }

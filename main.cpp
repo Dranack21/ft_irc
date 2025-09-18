@@ -4,16 +4,19 @@
 int main(int argc, char *argv[])
 {
 	Server_class	Server;
-	int				client;
 	
 	if (argc != 3)
-		std::cout << "Need 2 args" << std::endl;
-
-	Server.Setup_server(atoi(argv[1]));
-	while (1)
 	{
-		client = accept(Server.Server_socket , NULL, NULL);
+		std::cout << "Need 2 args" << std::endl;
+		return (1);
 	}
-	close (client);
+	try{
+		Server.Setup_server(atoi(argv[1]));
+		Server.Accept_and_poll();
+	}
+	catch(const std::exception &e){
+		std::cout << e.what();
+		return 0;
+	}
 }
 
