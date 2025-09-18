@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <sys/socket.h>
 #include <cerrno>
+
 struct in_addr2
 {
 	in_addr_t	s_addr = INADDR_ANY;
@@ -23,36 +24,38 @@ struct s_a
     struct	in_addr2	sin_adrr;				//32 BIT IPV4 ADRESS
 };
 
+class Client    
+{
+	private:
+        int fd;
+        std::string username;
+    	std::string nickname;
+		bool authenticated;
+
+    public:
+	    std::string buffer;
+		Client();
+		Client(int client_fd);
+		Client(std::string username, std::string nickname);
+		~Client();
+};
 
 class Server_class
 {
 	private:
 		struct s_a			socket_addr;
 		std::vector<pollfd>	fds;
+		std::map<int, Client> clients;
 	public:
 		int					Server_socket;
 		Server_class();
 		~Server_class();
+		void	handle_message(int client_fd, const std::string& data);
 		void	Setup_server(int port);
 		void	Accept_and_poll();
-		void	read_message(std::string buffer);
+		void	read_message(int client_fd, const std::string& buffer);
 };
 
 // / int poll(struct pollfd *fds, nfds_t nfds, int timeout);
 
 // The function poll takes an array of pollfd, checks each fd for the event specified in events and write what actually happened in revents
-
-
-// class Client    
-// {
-//     private:
-//         int fd;
-//         std::string username;
-//         std::string nickname;
-//         std::string addr_ip;
-
-//     public:
-//         Client();
-//         Client(std::string username, std::string nickname);
-//         ~Client();
-// }

@@ -8,6 +8,7 @@ NAME    = ircserv
 
 SRCS    = main.cpp \
 			srcs/Server.cpp \
+			srcs/Client.cpp \
 			
 			
 ### OBJS ###########################################################################

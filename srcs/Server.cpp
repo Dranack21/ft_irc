@@ -33,6 +33,7 @@ void	Server_class::Setup_server(int port)
 void	Server_class::Accept_and_poll()
 {
 	int		client_fd;
+	int		bytes_received;
 	pollfd	client;
 	pollfd	server;
 	char	buffer[512]; ///IRC SIZE LIMIT
@@ -52,22 +53,47 @@ void	Server_class::Accept_and_poll()
 			client.events = POLLIN;
 			client.revents = 0;
 			this->fds.push_back(client);
+
+			this->clients[client_fd] = Client(client_fd);
+                std::cout << "client connected: fd " << client_fd << std::endl;
 		}
-		for (size_t i = 0; i < this->fds.size(); i++)
-		{
-			if (this->fds[i].revents & POLLIN)
-			{
-				if (recv(this->fds[i].fd, buffer, sizeof(buffer), 0) < 0)
-					std::cout << "recv failed error code : " << errno << std::endl;
-				else
-					this->read_message(buffer);
-			}
-		}
-	}
+        for (size_t i = 1; i < this->fds.size(); i++)
+        {
+            if (this->fds[i].revents & (POLLIN | POLLHUP | POLLERR))
+            {
+                bytes_received = recv(this->fds[i].fd, buffer, sizeof(buffer) - 1, 0);
+                
+                if (bytes_received <= 0 || this->fds[i].revents & (POLLHUP | POLLERR))
+                {
+
+                    std::cout << "Client disconnected: fd " << this->fds[i].fd << std::endl;
+                    close(this->fds[i].fd);
+                    this->clients.erase(this->fds[i].fd);
+                    this->fds.erase(this->fds.begin() + i);
+                    i--;
+                }
+                else
+                {
+                    buffer[bytes_received] = '\0';
+                    //this->handle_message(this->fds[i].fd, std::string(buffer));
+					read_message(this->fds[i].fd, std::string(buffer));
+                }
+            }
+        }
+    }
+}
+
+void Server_class::handle_message(int client_fd, const std::string& data)
+{
+    this->clients[client_fd].buffer += data;
+
+	//the thing \r\n
+
 }
 
 
-void	Server_class::read_message(std::string buffer)
+void Server_class::read_message(int client_fd, const std::string& buffer)
 {
-	std::cout << "Message is " << buffer << std::endl;
+    std::cout << "Client " << client_fd << " sent: " << buffer << std::endl;
+    std::cout << "Message is " << buffer << std::endl;
 }
