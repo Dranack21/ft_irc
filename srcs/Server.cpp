@@ -9,9 +9,10 @@ Server_class::~Server_class()
 {
 }
 
-void	Server_class::Setup_server(int port)
+void	Server_class::Setup_server(int port, std::string password)
 {
 	this->Server_socket = socket(AF_INET ,SOCK_STREAM, 0);
+	this->server_password = password;
 	this->socket_addr.sin_port = htons(port);
 	if (fcntl(this->Server_socket, F_SETFL, O_NONBLOCK) < 0)
 		throw std::runtime_error("Fcntl flag set failed");
@@ -97,8 +98,6 @@ void	Server_class::handle_message(int client_fd, const std::string& data)
 	size_t		pos;
 	std::string	complete_message;
 
-	std::cout << "data is :" << data << std::endl;
-	std::cout << "AAAAAAAAAAAAAAA" << std::endl;
     this->clients[client_fd].buffer += data;
 	pos = this->clients[client_fd].buffer.find("\r\n");
 	while ((pos = this->clients[client_fd].buffer.find("\r\n") )!= std::string::npos)
@@ -107,17 +106,32 @@ void	Server_class::handle_message(int client_fd, const std::string& data)
 		
 		this->clients[client_fd].buffer.erase(0, pos + 2);
 		read_message(client_fd, complete_message);
-		// parse_and_execute_command(client_fd, complete_message);
+		parse_and_execute_command(client_fd, complete_message);
 	}
 }
 
-// void	Server_class::parse_and_execute_command(int client_fd, const std::string &buffer)
-// {
-
-// }
+void	Server_class::parse_and_execute_command(int client_fd, const std::string& complete_message)
+{
+	std::istringstream iss(complete_message);
+    std::string command;
+	std::string password;
+    iss >> command;
+	if (command == "PASS")
+	{
+		iss >> password;
+		if (password == this->server_password)
+		{
+			std::cout << "bravo tu est authentifie mtn je vais aller manger";
+			(void)client_fd;
+		}
+		else
+			std::cout << "je gere pas encore ce cas je vais aller manger" << std::endl;
+	}
+	else
+		std::cout << "je gere pas encore ce cas je vais aller manger" << std::endl;
+}
 
 void	Server_class::read_message(int client_fd, const std::string& buffer)
 {
-	std::cout << "\033[31m" << "eee" << "\033[0m" << std::endl;
     std::cout << "Client " << client_fd << " sent: " << buffer << std::endl;
 }

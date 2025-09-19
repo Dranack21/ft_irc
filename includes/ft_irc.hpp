@@ -6,6 +6,7 @@
 #include <arpa/inet.h>
 #include <vector>
 #include <map>
+#include <sstream>
 #include <fcntl.h>
 #include <poll.h>
 #include <cstdlib>
@@ -32,7 +33,6 @@ class Client
         std::string username;
     	std::string nickname;
 		bool authenticated;
-
     public:
 	    std::string buffer;
 		Client();
@@ -47,16 +47,18 @@ class Server_class
 		struct s_a			socket_addr;
 		std::vector<pollfd>	pollfd_vector;
 		std::map<int, Client> clients;
+		std::string				server_password;
 	public:
 		int					Server_socket;
 		Server_class();
 		~Server_class();
 		void	handle_message(int client_fd, const std::string& data);
-		void	Setup_server(int port);
+		void	Setup_server(int port, std::string password);
 		void	Accept_and_poll();
 		void	process_client_activity();
 		void	read_message(int client_fd, const std::string& buffer);
 		void	parse_and_execute_command(int client_fd, const std::string &complete_message);
+		// void	PASS_command(int);
 };
 
 // / int poll(struct pollfd *fds, nfds_t nfds, int timeout);

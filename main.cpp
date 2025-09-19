@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
 		return (1);
 	}
 	try{
-		Server.Setup_server(atoi(argv[1]));
+		Server.Setup_server(atoi(argv[1]), argv[2]);
 		Server.Accept_and_poll();
 	}
 	catch(const std::exception &e){
