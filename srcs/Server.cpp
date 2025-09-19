@@ -57,6 +57,7 @@ void	Server_class::Accept_and_poll()
         process_client_activity();
     }
 }
+
 // This function goes thorugh a vector of pollfd more specifically each representing a client connected to our server (index 0)
 // It looks for messaged receveid with revent since we use the function poll before entering this function
 // Then if a message is received we use the function recv and handle it correctly 
