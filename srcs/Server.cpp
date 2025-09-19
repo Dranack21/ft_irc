@@ -57,7 +57,9 @@ void	Server_class::Accept_and_poll()
         process_client_activity();
     }
 }
-
+// This function goes thorugh a vector of pollfd more specifically each representing a client connected to our server (index 0)
+// It looks for messaged receveid with revent since we use the function poll before entering this function
+// Then if a message is received we use the function recv and handle it correctly 
 void Server_class::process_client_activity()
 {
 	int		bytes_received;
@@ -67,37 +69,54 @@ void Server_class::process_client_activity()
         {
             if (this->pollfd_vector[i].revents & (POLLIN | POLLHUP | POLLERR))
             {
+				memset(buffer, 0, sizeof(buffer));
                 bytes_received = recv(this->pollfd_vector[i].fd, buffer, sizeof(buffer) - 1, 0);
-                
+                std::cout << bytes_received << std::endl;
                 if (bytes_received <= 0 || this->pollfd_vector[i].revents & (POLLHUP | POLLERR)) ////peut etre handle 0 et -1 differement
                 {
                     std::cout << "Client disconnected: fd " << this->pollfd_vector[i].fd << std::endl;
                     close(this->pollfd_vector[i].fd);
-                    this->clients.erase(this->pollfd_vector[i].fd);
+                    this->clients.erase(this->pollfd_vector[i].fd); //// THIS IS A MAP SO WE ERASE USING THE KEY WHICH IS THE FD OF THE CLIENT
                     this->pollfd_vector.erase(this->pollfd_vector.begin() + i);
                     i--;
                 }
                 else
                 {
-                    buffer[bytes_received] = '\0';
-                    //this->handle_message(this->pollfd_vector[i].fd, std::string(buffer));
-					read_message(this->pollfd_vector[i].fd, std::string(buffer));
+                    this->handle_message(this->pollfd_vector[i].fd, std::string(buffer));
                 }
             }
         }
 }
 
-void Server_class::handle_message(int client_fd, const std::string& data)
+//This function takes as argument the fd of a client and its message received by recv function
+// The message can be splited up so we look for \r\n which indicates the end of a message
+// if Not found we keep going
+void	Server_class::handle_message(int client_fd, const std::string& data)
 {
+	size_t		pos;
+	std::string	complete_message;
+
+	std::cout << "data is :" << data << std::endl;
+	std::cout << "AAAAAAAAAAAAAAA" << std::endl;
     this->clients[client_fd].buffer += data;
-
-	//the thing \r\n
-
+	pos = this->clients[client_fd].buffer.find("\r\n");
+	while ((pos = this->clients[client_fd].buffer.find("\r\n") )!= std::string::npos)
+	{
+		complete_message = this->clients[client_fd].buffer.substr(0, pos);
+		
+		this->clients[client_fd].buffer.erase(0, pos + 2);
+		read_message(client_fd, complete_message);
+		// parse_and_execute_command(client_fd, complete_message);
+	}
 }
 
+// void	Server_class::parse_and_execute_command(int client_fd, const std::string &buffer)
+// {
 
-void Server_class::read_message(int client_fd, const std::string& buffer)
+// }
+
+void	Server_class::read_message(int client_fd, const std::string& buffer)
 {
+	std::cout << "\033[31m" << "eee" << "\033[0m" << std::endl;
     std::cout << "Client " << client_fd << " sent: " << buffer << std::endl;
-    std::cout << "Message is " << buffer << std::endl;
 }

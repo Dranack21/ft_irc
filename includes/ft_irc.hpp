@@ -10,6 +10,7 @@
 #include <poll.h>
 #include <cstdlib>
 #include <sys/socket.h>
+#include "cstring"
 #include <cerrno>
 
 struct in_addr2
@@ -55,6 +56,7 @@ class Server_class
 		void	Accept_and_poll();
 		void	process_client_activity();
 		void	read_message(int client_fd, const std::string& buffer);
+		void	parse_and_execute_command(int client_fd, const std::string &complete_message);
 };
 
 // / int poll(struct pollfd *fds, nfds_t nfds, int timeout);
