@@ -33,54 +33,58 @@ void	Server_class::Setup_server(int port)
 void	Server_class::Accept_and_poll()
 {
 	int		client_fd;
-	int		bytes_received;
-	pollfd	client;
-	pollfd	server;
-	char	buffer[512]; ///IRC SIZE LIMIT
+	pollfd	client_pollfd;
+	pollfd	server_pollfd;
 
-	server.fd = this->Server_socket;
-	server.events = POLLIN;
-	server.revents = 0;
+	server_pollfd.fd = this->Server_socket;
+	server_pollfd.events = POLLIN;
+	server_pollfd.revents = 0;
 	
-	this->fds.push_back(server);
+	this->pollfd_vector.push_back(server_pollfd);
 	while (1)
 	{
-		poll(this->fds.data() , this->fds.size(), -1);
-		if (this->fds[0].revents & POLLIN)
+		poll(this->pollfd_vector.data() , this->pollfd_vector.size(), -1);
+		if (this->pollfd_vector[0].revents & POLLIN)
 		{
 			client_fd = accept(this->Server_socket , NULL, NULL);
-			client.fd = client_fd;
-			client.events = POLLIN;
-			client.revents = 0;
-			this->fds.push_back(client);
-
+			client_pollfd.fd = client_fd;
+			client_pollfd.events = POLLIN;
+			client_pollfd.revents = 0;
+			this->pollfd_vector.push_back(client_pollfd);
 			this->clients[client_fd] = Client(client_fd);
                 std::cout << "client connected: fd " << client_fd << std::endl;
 		}
-        for (size_t i = 1; i < this->fds.size(); i++)
-        {
-            if (this->fds[i].revents & (POLLIN | POLLHUP | POLLERR))
-            {
-                bytes_received = recv(this->fds[i].fd, buffer, sizeof(buffer) - 1, 0);
-                
-                if (bytes_received <= 0 || this->fds[i].revents & (POLLHUP | POLLERR))
-                {
+        process_client_activity();
+    }
+}
 
-                    std::cout << "Client disconnected: fd " << this->fds[i].fd << std::endl;
-                    close(this->fds[i].fd);
-                    this->clients.erase(this->fds[i].fd);
-                    this->fds.erase(this->fds.begin() + i);
+void Server_class::process_client_activity()
+{
+	int		bytes_received;
+	char	buffer[512];
+
+	for (size_t i = 1; i < this->pollfd_vector.size(); i++)
+        {
+            if (this->pollfd_vector[i].revents & (POLLIN | POLLHUP | POLLERR))
+            {
+                bytes_received = recv(this->pollfd_vector[i].fd, buffer, sizeof(buffer) - 1, 0);
+                
+                if (bytes_received <= 0 || this->pollfd_vector[i].revents & (POLLHUP | POLLERR)) ////peut etre handle 0 et -1 differement
+                {
+                    std::cout << "Client disconnected: fd " << this->pollfd_vector[i].fd << std::endl;
+                    close(this->pollfd_vector[i].fd);
+                    this->clients.erase(this->pollfd_vector[i].fd);
+                    this->pollfd_vector.erase(this->pollfd_vector.begin() + i);
                     i--;
                 }
                 else
                 {
                     buffer[bytes_received] = '\0';
-                    //this->handle_message(this->fds[i].fd, std::string(buffer));
-					read_message(this->fds[i].fd, std::string(buffer));
+                    //this->handle_message(this->pollfd_vector[i].fd, std::string(buffer));
+					read_message(this->pollfd_vector[i].fd, std::string(buffer));
                 }
             }
         }
-    }
 }
 
 void Server_class::handle_message(int client_fd, const std::string& data)

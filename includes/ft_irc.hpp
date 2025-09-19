@@ -44,7 +44,7 @@ class Server_class
 {
 	private:
 		struct s_a			socket_addr;
-		std::vector<pollfd>	fds;
+		std::vector<pollfd>	pollfd_vector;
 		std::map<int, Client> clients;
 	public:
 		int					Server_socket;
@@ -53,6 +53,7 @@ class Server_class
 		void	handle_message(int client_fd, const std::string& data);
 		void	Setup_server(int port);
 		void	Accept_and_poll();
+		void	process_client_activity();
 		void	read_message(int client_fd, const std::string& buffer);
 };
 
