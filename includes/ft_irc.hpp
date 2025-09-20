@@ -33,12 +33,28 @@ class Client
         std::string username;
     	std::string nickname;
 		bool authenticated;
+		bool has_nick;
+		bool has_user;
+
     public:
 	    std::string buffer;
 		Client();
 		Client(int client_fd);
 		Client(std::string username, std::string nickname);
 		~Client();
+
+		int get_fd() const { return fd; }
+		std::string get_username() const { return username; }
+		std::string get_nickname() const { return nickname; }
+		bool is_authenticated() const { return authenticated; }
+		bool has_username() const { return has_user; }
+		bool has_nickname() const { return has_nick; }
+		bool is_fully_authenticated() const { return authenticated && has_nick && has_user; }
+		
+
+		void set_username(const std::string& user);
+		void set_nickname(const std::string& nick);
+		void set_authenticated(bool auth);
 };
 
 class Server_class
@@ -60,6 +76,14 @@ class Server_class
 		void	parse_and_execute_command(int client_fd, const std::string &complete_message);
 		void	send_error_message(int client_fd, std::string error_msg);
 		// void	PASS_command(int);
+
+		void	handle_pass_command(int client_fd, std::istringstream& iss);
+		void	handle_nick_command(int client_fd, std::istringstream& iss);
+		void	handle_user_command(int client_fd, std::istringstream& iss);
+		
+		void	check_registration_complete(int client_fd);
+		bool	is_nickname_in_use(const std::string& nickname);
+		bool	is_valid_nickname(const std::string& nickname);
 };
 
 // / int poll(struct pollfd *fds, nfds_t nfds, int timeout);

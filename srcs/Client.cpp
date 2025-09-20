@@ -15,3 +15,21 @@ Client::Client(std::string username, std::string nickname) :fd(-1), username(use
 Client::~Client()
 {
 }
+
+void Client::set_username(const std::string& user)
+{
+	this->username = user;
+	this->has_user = true;
+}
+
+void Client::set_nickname(const std::string& nick)
+{
+	this->nickname = nick;
+	this->has_nick = true;
+}
+
+
+void Client::set_authenticated(bool auth)
+{
+	this->authenticated = auth;
+}

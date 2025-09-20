@@ -114,22 +114,160 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 {
 	std::istringstream iss(complete_message);
     std::string command;
-	std::string password;
     iss >> command;
+
 	if (command == "PASS")
 	{
-		iss >> password;
-		if (password == this->server_password)
-		{
-			std::cout << "bravo tu est authentifie mtn je vais aller manger";
-			(void)client_fd;
-		}
-		else
-			send_error_message(client_fd, "Failed authentication, Incorrect Password");
+		handle_pass_command(client_fd, iss);
+	}
+	else if (command == "NICK")
+	{
+		handle_nick_command(client_fd, iss);
+	}
+	else if (command == "USER")
+	{
+		handle_user_command(client_fd, iss);
 	}
 	else
-		send_error_message(client_fd, "You must authenticate with PASS <password> first");
+	{
+		if (!this->clients[client_fd].is_fully_authenticated())
+		{
+			send_error_message(client_fd, "You have not registered");
+		}
+		else
+		{
+			send_error_message(client_fd, command + " :Unknown command");
+		}
+	}
 }
+
+void Server_class::handle_pass_command(int client_fd, std::istringstream& iss)
+{
+	std::string password;
+	iss >> password;
+	
+	if (password.empty())
+	{
+		send_error_message(client_fd, "Not enough parameters");
+		return;
+	}
+	
+	if (this->clients[client_fd].is_authenticated())
+	{
+		send_error_message(client_fd, "You may not reregister");
+		return;
+	}
+	
+	if (password == this->server_password)
+	{
+		this->clients[client_fd].set_authenticated(true);
+		std::cout << "bravo tu est authentifie mtn je vais aller manger";
+		check_registration_complete(client_fd);
+	}
+	else
+	{
+		send_error_message(client_fd, "Password incorrect");
+	}
+}
+
+void Server_class::handle_user_command(int client_fd, std::istringstream& iss)
+{
+	std::string username, hostname, servername, realname;
+	iss >> username >> hostname >> servername;
+	
+	std::string remaining;
+	std::getline(iss, remaining);
+	if (!remaining.empty() && remaining[0] == ' ')
+		remaining = remaining.substr(1);
+	if (!remaining.empty() && remaining[0] == ':')
+		realname = remaining.substr(1);
+	else
+		realname = remaining;
+	
+	if (username.empty())
+	{
+		send_error_message(client_fd, "Not enough parameters");
+		return;
+	}
+	
+	if (this->clients[client_fd].has_username())
+	{
+		send_error_message(client_fd, "You may not reregister");
+		return;
+	}
+	
+	this->clients[client_fd].set_username(username);
+	std::cout << "Client " << client_fd << " set username to: " << username << std::endl;
+
+	check_registration_complete(client_fd);
+}
+
+void Server_class::handle_nick_command(int client_fd, std::istringstream& iss)
+{
+	std::string nickname;
+	iss >> nickname;
+	
+	if (nickname.empty())
+	{
+		send_error_message(client_fd, "No nickname given");
+		return;
+	}
+	
+	if (is_nickname_in_use(nickname))
+	{
+		send_error_message(client_fd,"Nickname is already in use");
+		return;
+	}
+	
+	if (!is_valid_nickname(nickname))
+	{
+		send_error_message(client_fd, "Weird nickname");
+		return;
+	}
+	
+	this->clients[client_fd].set_nickname(nickname);
+	std::cout << "Client " << client_fd << " set nickname to: " << nickname << std::endl;
+	check_registration_complete(client_fd);
+}
+
+void Server_class::check_registration_complete(int client_fd)
+{
+	Client& client = this->clients[client_fd];
+	
+	if (client.is_fully_authenticated())
+	{
+		std::cout << "Client " << client_fd << " (" << client.get_nickname() << ") fully registered!" << std::endl;
+	}
+}
+
+bool Server_class::is_nickname_in_use(const std::string& nickname)
+{
+	std::map<int, Client>::iterator it;
+	for (it = this->clients.begin(); it != this->clients.end(); ++it)
+	{
+		if (it->second.get_nickname() == nickname)
+			return true;
+	}
+	return false;
+}
+
+bool Server_class::is_valid_nickname(const std::string& nickname)
+{
+	if (nickname.empty() || nickname.length() > 9)
+		return false;
+
+	if (!std::isalpha(nickname[0]))
+		return false;
+
+	for (size_t i = 1; i < nickname.length(); i++)
+	{
+		char c = nickname[i];
+		if (!std::isalnum(c) && c != '-' && c != '_' && c != '[' && c != ']' && c != '{' && c != '}' && c != '\\' && c != '`' && c != '^')
+			return false;
+	}
+	return true;
+}
+
 
 void	Server_class::read_message(int client_fd, const std::string& buffer)
 {

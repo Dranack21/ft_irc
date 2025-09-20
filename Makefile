@@ -9,7 +9,8 @@ NAME    = ircserv
 SRCS    = main.cpp \
 			srcs/Server.cpp \
 			srcs/Client.cpp \
-			
+			srcs/Commands.cpp \
+			srcs/Server_helpers.cpp
 			
 ### OBJS ###########################################################################
 
