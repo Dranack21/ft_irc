@@ -58,6 +58,7 @@ class Server_class
 		void	process_client_activity();
 		void	read_message(int client_fd, const std::string& buffer);
 		void	parse_and_execute_command(int client_fd, const std::string &complete_message);
+		void	send_error_message(int client_fd, std::string error_msg);
 		// void	PASS_command(int);
 };
 

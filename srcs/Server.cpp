@@ -125,10 +125,10 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 			(void)client_fd;
 		}
 		else
-			std::cout << "je gere pas encore ce cas je vais aller manger" << std::endl;
+			send_error_message(client_fd, "Failed authentication, Incorrect Password");
 	}
 	else
-		std::cout << "je gere pas encore ce cas je vais aller manger" << std::endl;
+		send_error_message(client_fd, "You must authenticate with PASS <password> first");
 }
 
 void	Server_class::read_message(int client_fd, const std::string& buffer)
