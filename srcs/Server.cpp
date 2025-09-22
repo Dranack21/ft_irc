@@ -1,8 +1,12 @@
 #include "ft_irc.hpp"
 
-Server_class::Server_class()
+Server_class::Server_class() : server_name("ft_irc.42.fr"), server_version("1.0"), creation_date("") //constructor initializing server name and version not sure about version and name 
 {
-
+	std::time_t now = std::time(0);
+	char* dt = std::ctime(&now);
+	creation_date = std::string(dt);
+	if (!creation_date.empty() && creation_date[creation_date.size() - 1] == '\n')
+    	creation_date.erase(creation_date.size() - 1);
 }
 
 Server_class::~Server_class()
@@ -21,8 +25,6 @@ void	Server_class::Setup_server(int port, std::string password)
 	if (listen(this->Server_socket, 50) < 0)
 		throw std::runtime_error ("Listen failed");
 }
-
-
 
 // This function accepts clients connections and monitors file descriptors with polling function
 // pollfd struct: 
@@ -73,7 +75,7 @@ void Server_class::process_client_activity()
             {
 				memset(buffer, 0, sizeof(buffer));
                 bytes_received = recv(this->pollfd_vector[i].fd, buffer, sizeof(buffer) - 1, 0);
-                std::cout << bytes_received << std::endl;
+
                 if (bytes_received <= 0 || this->pollfd_vector[i].revents & (POLLHUP | POLLERR)) ////peut etre handle 0 et -1 differement
                 {
                     std::cout << "Client disconnected: fd " << this->pollfd_vector[i].fd << std::endl;
@@ -117,159 +119,36 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
     iss >> command;
 
 	if (command == "PASS")
-	{
 		handle_pass_command(client_fd, iss);
-	}
 	else if (command == "NICK")
-	{
+
 		handle_nick_command(client_fd, iss);
-	}
 	else if (command == "USER")
-	{
 		handle_user_command(client_fd, iss);
-	}
 	else
 	{
 		if (!this->clients[client_fd].is_fully_authenticated())
-		{
 			send_error_message(client_fd, "You have not registered");
-		}
 		else
-		{
 			send_error_message(client_fd, command + " :Unknown command");
-		}
 	}
 }
 
-void Server_class::handle_pass_command(int client_fd, std::istringstream& iss)
-{
-	std::string password;
-	iss >> password;
-	
-	if (password.empty())
-	{
-		send_error_message(client_fd, "Not enough parameters");
-		return;
-	}
-	
-	if (this->clients[client_fd].is_authenticated())
-	{
-		send_error_message(client_fd, "You may not reregister");
-		return;
-	}
-	
-	if (password == this->server_password)
-	{
-		this->clients[client_fd].set_authenticated(true);
-		std::cout << "bravo tu est authentifie mtn je vais aller manger";
-		check_registration_complete(client_fd);
-	}
-	else
-	{
-		send_error_message(client_fd, "Password incorrect");
-	}
-}
-
-void Server_class::handle_user_command(int client_fd, std::istringstream& iss)
-{
-	std::string username, hostname, servername, realname;
-	iss >> username >> hostname >> servername;
-	
-	std::string remaining;
-	std::getline(iss, remaining);
-	if (!remaining.empty() && remaining[0] == ' ')
-		remaining = remaining.substr(1);
-	if (!remaining.empty() && remaining[0] == ':')
-		realname = remaining.substr(1);
-	else
-		realname = remaining;
-	
-	if (username.empty())
-	{
-		send_error_message(client_fd, "Not enough parameters");
-		return;
-	}
-	
-	if (this->clients[client_fd].has_username())
-	{
-		send_error_message(client_fd, "You may not reregister");
-		return;
-	}
-	
-	this->clients[client_fd].set_username(username);
-	std::cout << "Client " << client_fd << " set username to: " << username << std::endl;
-
-	check_registration_complete(client_fd);
-}
-
-void Server_class::handle_nick_command(int client_fd, std::istringstream& iss)
-{
-	std::string nickname;
-	iss >> nickname;
-	
-	if (nickname.empty())
-	{
-		send_error_message(client_fd, "No nickname given");
-		return;
-	}
-	
-	if (is_nickname_in_use(nickname))
-	{
-		send_error_message(client_fd,"Nickname is already in use");
-		return;
-	}
-	
-	if (!is_valid_nickname(nickname))
-	{
-		send_error_message(client_fd, "Weird nickname");
-		return;
-	}
-	
-	this->clients[client_fd].set_nickname(nickname);
-	std::cout << "Client " << client_fd << " set nickname to: " << nickname << std::endl;
-	check_registration_complete(client_fd);
-}
-
-void Server_class::check_registration_complete(int client_fd)
+void Server_class::send_welcome_sequence(int client_fd)//sends the welcome messages after registration is complete (error in send_error_mess isn't a fitting name here)
 {
 	Client& client = this->clients[client_fd];
-	
-	if (client.is_fully_authenticated())
-	{
-		std::cout << "Client " << client_fd << " (" << client.get_nickname() << ") fully registered!" << std::endl;
-	}
-}
+	std::string nickname = client.get_nickname();
+	std::string username = client.get_username();
 
-bool Server_class::is_nickname_in_use(const std::string& nickname)
-{
-	std::map<int, Client>::iterator it;
-	for (it = this->clients.begin(); it != this->clients.end(); ++it)
-	{
-		if (it->second.get_nickname() == nickname)
-			return true;
-	}
-	return false;
-}
+	std::string welcome_msg = "Welcome to the " + server_name + " Network, " + nickname + "." + username + "@" + server_name;
+	send_error_mess(client_fd, RPL_WELCOME, welcome_msg);
 
-bool Server_class::is_valid_nickname(const std::string& nickname)
-{
-	if (nickname.empty() || nickname.length() > 9)
-		return false;
+	std::string host_msg = "Your host is " + server_name + ", running version " + server_version;
+	send_error_mess(client_fd, RPL_YOURHOST, host_msg);
 
-	if (!std::isalpha(nickname[0]))
-		return false;
+	std::string created_msg = "This server was created " + creation_date;
+	send_error_mess(client_fd, RPL_CREATED, created_msg);
 
-	for (size_t i = 1; i < nickname.length(); i++)
-	{
-		char c = nickname[i];
-		if (!std::isalnum(c) && c != '-' && c != '_' && c != '[' && c != ']' && c != '{' && c != '}' && c != '\\' && c != '`' && c != '^')
-			return false;
-	}
-	return true;
-}
-
-
-void	Server_class::read_message(int client_fd, const std::string& buffer)
-{
-    std::cout << "Client " << client_fd << " sent: " << buffer << std::endl;
+	std::string info_msg = server_name + " " + server_version + " o o";
+	send_error_mess(client_fd, RPL_MYINFO, info_msg);
 }
