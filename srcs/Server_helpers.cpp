@@ -1,5 +1,7 @@
 #include "ft_irc.hpp"
 
+Server_class* Server_class::instance = NULL; //needed for signal handling
+
 void	Server_class::send_error_message(int client_fd, std::string error_msg)
 {
 	std::string response = "ERROR :" + error_msg + "\r\n";
@@ -74,7 +76,10 @@ bool Server_class::is_valid_nickname(const std::string& nickname)
 
 void	Server_class::read_message(int client_fd, const std::string& buffer)
 {
-    std::cout << "Client " << client_fd << " sent: " << buffer << std::endl;
+    std::time_t now = std::time(0);
+    char* timestr = std::ctime(&now);
+    std::cout << "[" << std::string(timestr).substr(0, 24) << "] " 
+              << "Client " << client_fd << " sent: " << buffer << std::endl;
 }
 
 std::string Server_class::get_client_prefix(const Client& client) //function to get the prefix of a client like nickname!username@hostname we need this for messages
@@ -96,4 +101,34 @@ std::string Server_class::to_upper(const std::string& str)
 void Client::set_realname(const std::string& real) //temporary 
 {
 	this->realname = real;
+}
+
+void Server_class::signal_handler(int signum)
+{
+    std::cout << "\nReceived signal " << signum << ". Shutting down server..." << std::endl;
+    if (instance)
+    {
+        instance->running = false;
+    }
+}
+
+void Server_class::shutdown_server() //function to shutdown the server to not get binding fails after a ctrl+c
+{
+    std::cout << "Shutting down server..." << std::endl;
+    std::string quit_message = "ERROR :Server shutting down\r\n";
+    
+    for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
+    {
+        send(it->first, quit_message.c_str(), quit_message.length(), 0);
+        close(it->first);
+        std::cout << "Closed connection to client fd " << it->first << std::endl;
+    }
+    clients.clear();
+    pollfd_vector.clear();
+    if (Server_socket >= 0)
+    {
+        close(Server_socket);
+        std::cout << "Server socket closed" << std::endl;
+    }
+    std::cout << "Server shutdown complete." << std::endl;
 }

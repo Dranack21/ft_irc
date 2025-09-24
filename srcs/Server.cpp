@@ -2,15 +2,23 @@
 
 Server_class::Server_class() : server_name("ft_irc.42.fr"), server_version("1.0"), creation_date("") //constructor initializing server name and version not sure about version and name 
 {
+	instance = this;
+	
 	std::time_t now = std::time(0);
 	char* dt = std::ctime(&now);
 	creation_date = std::string(dt);
 	if (!creation_date.empty() && creation_date[creation_date.size() - 1] == '\n')
     	creation_date.erase(creation_date.size() - 1);
+
+	signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+    signal(SIGQUIT, signal_handler);
 }
 
 Server_class::~Server_class()
 {
+	if (running)
+        shutdown_server();
 }
 
 void	Server_class::Setup_server(int port, std::string password)
@@ -44,9 +52,13 @@ void	Server_class::Accept_and_poll()
 	server_pollfd.revents = 0;
 	
 	this->pollfd_vector.push_back(server_pollfd);
-	while (1)
+	while (running)
 	{
-		poll(this->pollfd_vector.data() , this->pollfd_vector.size(), -1);
+		if (poll(this->pollfd_vector.data(), this->pollfd_vector.size(), -1) < 0)
+        {
+            if (errno == EINTR) continue;
+            break;
+        }
 		if (this->pollfd_vector[0].revents & POLLIN)
 		{
 			client_fd = accept(this->Server_socket , NULL, NULL);
@@ -59,6 +71,7 @@ void	Server_class::Accept_and_poll()
 		}
         process_client_activity();
     }
+	shutdown_server();
 }
 
 // This function goes thorugh a vector of pollfd more specifically each representing a client connected to our server (index 0)
@@ -118,19 +131,19 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
     std::string command;
     iss >> command;
 
+	command = to_upper(command);
 	if (command == "PASS")
 		handle_pass_command(client_fd, iss);
 	else if (command == "NICK")
-
 		handle_nick_command(client_fd, iss);
 	else if (command == "USER")
 		handle_user_command(client_fd, iss);
 	else
 	{
 		if (!this->clients[client_fd].is_fully_authenticated())
-			send_error_message(client_fd, "You have not registered");
+			send_error_mess(client_fd, ERR_ALREADYREGISTRED, "You have not registered");
 		else
-			send_error_message(client_fd, command + " :Unknown command");
+			send_error_mess(client_fd, ERR_UNKNOWNCOMMAND, "Unknown command", command);
 	}
 }
 

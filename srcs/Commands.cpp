@@ -7,13 +7,13 @@ void Server_class::handle_pass_command(int client_fd, std::istringstream& iss)
 	
 	if (password.empty())
 	{
-		send_error_message(client_fd, "Not enough parameters");
+		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "PASS");
 		return;
 	}
 	
 	if (this->clients[client_fd].is_authenticated())
 	{
-		send_error_message(client_fd, "You may not reregister");
+		send_error_mess(client_fd, ERR_ALREADYREGISTRED, "You may not reregister");;
 		return;
 	}
 	
@@ -24,7 +24,7 @@ void Server_class::handle_pass_command(int client_fd, std::istringstream& iss)
 	}
 	else
 	{
-		send_error_message(client_fd, "Password incorrect");
+		send_error_mess(client_fd, ERR_PASSWDMISMATCH, "Password incorrect");
 	}
 }
 
@@ -44,13 +44,13 @@ void Server_class::handle_user_command(int client_fd, std::istringstream& iss)
 	
 	if (username.empty())
 	{
-		send_error_message(client_fd, "Not enough parameters");
+		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "USER");
 		return;
 	}
 	
 	if (this->clients[client_fd].has_username())
 	{
-		send_error_message(client_fd, "You may not reregister");
+		send_error_mess(client_fd, ERR_ALREADYREGISTRED, "You may not reregister");
 		return;
 	}
 	
@@ -68,19 +68,19 @@ void Server_class::handle_nick_command(int client_fd, std::istringstream& iss)
 	
 	if (nickname.empty())
 	{
-		send_error_message(client_fd, "No nickname given");
+		send_error_mess(client_fd, ERR_NONICKNAMEGIVEN, "No nickname given");
 		return;
 	}
 	
 	if (is_nickname_in_use(nickname))
 	{
-		send_error_message(client_fd,"Nickname is already in use");
+		send_error_mess(client_fd, ERR_NICKNAMEINUSE, "Nickname is already in use", nickname);
 		return;
 	}
 	
 	if (!is_valid_nickname(nickname))
 	{
-		send_error_message(client_fd, "Weird nickname");
+		send_error_mess(client_fd, ERR_ERRONEUSNICKNAME, "Erroneous nickname", nickname);
 		return;
 	}
 	if (this->clients[client_fd].has_nickname() && this->clients[client_fd].is_fully_authenticated()) // if already has a nick so is to change it 

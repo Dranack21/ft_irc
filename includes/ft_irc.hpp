@@ -14,6 +14,8 @@
 #include <ctime>
 #include "cstring"
 #include <cerrno>
+#include <signal.h>
+#include <csignal>
 
 
 #define RPL_WELCOME 001
@@ -34,7 +36,6 @@
 #define ERR_NEEDMOREPARAMS 461
 #define ERR_ALREADYREGISTRED 462
 #define ERR_PASSWDMISMATCH 464
-
 
 struct in_addr2
 {
@@ -91,6 +92,8 @@ class Server_class
 		std::string				server_name;
 		std::string				server_version;
 		std::string				creation_date;
+		static Server_class* instance;
+		bool running;
 	public:
 		int					Server_socket;
 		Server_class();
@@ -119,6 +122,9 @@ class Server_class
 
 		std::string	get_client_prefix(const Client& client);
 		std::string	to_upper(const std::string& str);
+
+		static void signal_handler(int signum);
+		void shutdown_server();
 };
 
 // / int poll(struct pollfd *fds, nfds_t nfds, int timeout);
