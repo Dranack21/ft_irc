@@ -46,6 +46,7 @@
 		"istream": "cpp",
 		"cstring": "cpp",
 		"sstream": "cpp",
-		"ctime": "cpp"
+		"ctime": "cpp",
+		"csignal": "cpp"
 	}
 }

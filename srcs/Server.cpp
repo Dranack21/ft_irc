@@ -121,11 +121,11 @@ void	Server_class::handle_message(int client_fd, const std::string& data)
 		
 		this->clients[client_fd].buffer.erase(0, pos + 2);
 		read_message(client_fd, complete_message);
-		parse_and_execute_command(client_fd, complete_message);
+		parse_for_register(client_fd, complete_message);
 	}
 }
 
-void	Server_class::parse_and_execute_command(int client_fd, const std::string& complete_message)
+void	Server_class::parse_for_register(int client_fd, const std::string& complete_message)
 {
 	std::istringstream iss(complete_message);
     std::string command;
@@ -143,11 +143,11 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 		if (!this->clients[client_fd].is_fully_authenticated())
 			send_error_mess(client_fd, ERR_ALREADYREGISTRED, "You have not registered");
 		else
-			send_error_mess(client_fd, ERR_UNKNOWNCOMMAND, "Unknown command", command);
+			parse_and_execute_command(client_fd, complete_message);
 	}
 }
 
-void Server_class::send_welcome_sequence(int client_fd)//sends the welcome messages after registration is complete (error in send_error_mess isn't a fitting name here)
+void	Server_class::send_welcome_sequence(int client_fd)//sends the welcome messages after registration is complete (error in send_error_mess isn't a fitting name here)
 {
 	Client& client = this->clients[client_fd];
 	std::string nickname = client.get_nickname();

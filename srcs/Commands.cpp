@@ -1,6 +1,57 @@
 #include "ft_irc.hpp"
 
-void Server_class::handle_pass_command(int client_fd, std::istringstream& iss)
+// send_error_mess(client_fd, ERR_UNKNOWNCOMMAND, "Unknown command", command);)
+
+void	Server_class::parse_and_execute_command(int client_fd, const std::string& complete_message)
+{
+	std::istringstream iss(complete_message);
+    std::string command;
+    iss >> command;
+	if (command == "JOIN")
+		handle_join_command(client_fd, iss);
+	else
+		send_error_mess(client_fd, ERR_UNKNOWNCOMMAND, "UNKNOW COMMAND");
+    
+}
+
+void	Server_class::handle_join_command(int client_fd, std::istringstream& iss)
+{
+	bool						has_keys = true;
+	std::vector<std::string> 	channels;
+	std::vector<std::string> 	keys;
+	std::string					channels_str, key, extra;
+	
+	iss >> channels_str >> key >> extra;
+	if (!(iss >> channels_str))
+	{
+		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters");
+    	return;
+    }
+	if (!(iss >> key))
+		has_keys = false;
+	if (iss >> extra)
+	{
+		send_error_mess(client_fd, ERR_UNKNOWNCOMMAND, "Invalid synthax for JOIN command");
+		return ;
+	}
+	channels = Split_by_comma(channels_str);
+	keys = Split_by_comma(key);
+	for (int i = 0; i++ ; i < channels.size())
+	{
+		if (check_if_valid_channel_name(channels[i]))
+		{
+			send_error_mess(client_fd, ERR_NOSUCHCHANNEL, "Invalid characters found in channel name");
+			return ;
+		}
+		else
+			Join_channel(client_fd, channels[i], keys);
+	}
+}
+
+
+
+
+void	Server_class::handle_pass_command(int client_fd, std::istringstream& iss)
 {
 	std::string password;
 	iss >> password;
@@ -28,7 +79,7 @@ void Server_class::handle_pass_command(int client_fd, std::istringstream& iss)
 	}
 }
 
-void Server_class::handle_user_command(int client_fd, std::istringstream& iss)
+void	Server_class::handle_user_command(int client_fd, std::istringstream& iss)
 {
 	std::string username, hostname, servername, realname;
 	iss >> username >> hostname >> servername;
@@ -61,9 +112,9 @@ void Server_class::handle_user_command(int client_fd, std::istringstream& iss)
 	check_registration_complete(client_fd);
 }
 
-void Server_class::handle_nick_command(int client_fd, std::istringstream& iss)
+void	Server_class::handle_nick_command(int client_fd, std::istringstream& iss)
 {
-	std::string nickname;
+	std::string	nickname;
 	iss >> nickname;
 	
 	if (nickname.empty())
@@ -71,13 +122,11 @@ void Server_class::handle_nick_command(int client_fd, std::istringstream& iss)
 		send_error_mess(client_fd, ERR_NONICKNAMEGIVEN, "No nickname given");
 		return;
 	}
-	
 	if (is_nickname_in_use(nickname))
 	{
 		send_error_mess(client_fd, ERR_NICKNAMEINUSE, "Nickname is already in use", nickname);
 		return;
 	}
-	
 	if (!is_valid_nickname(nickname))
 	{
 		send_error_mess(client_fd, ERR_ERRONEUSNICKNAME, "Erroneous nickname", nickname);

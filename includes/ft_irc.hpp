@@ -36,12 +36,12 @@
 #define ERR_NEEDMOREPARAMS 461
 #define ERR_ALREADYREGISTRED 462
 #define ERR_PASSWDMISMATCH 464
+#define ERR_BADCHANNELKEY 475
 
 struct in_addr2
 {
 	in_addr_t	s_addr = INADDR_ANY;
 };
-
 struct s_a
 {
 	sa_family_t 		sin_family = AF_INET;	///protocol IPV4
@@ -49,6 +49,17 @@ struct s_a
     struct	in_addr2	sin_adrr;				//32 BIT IPV4 ADRESS
 };
 
+
+struct Channel
+{
+	bool		created = false;
+	std::string name;
+	std::string topic;
+	std::string password;
+	bool	has_password;
+	std::vector<int> Clients;	//vecteur d'int contenant les FD des clients 
+	std::vector<int> Operators; //vecteur d'int contenant les FD des operateurs
+};
 class Client    
 {
 	private:
@@ -87,12 +98,13 @@ class Server_class
 	private:
 		struct s_a			socket_addr;
 		std::vector<pollfd>	pollfd_vector;
+		std::map<std::string, Channel> channels;
 		std::map<int, Client> clients;
 		std::string				server_password;
 		std::string				server_name;
 		std::string				server_version;
 		std::string				creation_date;
-		static Server_class* instance;
+		static Server_class* 	instance;
 		bool running;
 	public:
 		int					Server_socket;
@@ -103,6 +115,7 @@ class Server_class
 		void	Accept_and_poll();
 		void	process_client_activity();
 		void	read_message(int client_fd, const std::string& buffer);
+		void	parse_for_register(int client_fd, const std::string &complete_message);
 		void	parse_and_execute_command(int client_fd, const std::string &complete_message);
 		void	send_error_message(int client_fd, std::string error_msg);
 		// void	PASS_command(int);
@@ -115,6 +128,7 @@ class Server_class
 		void	handle_pass_command(int client_fd, std::istringstream& iss);
 		void	handle_nick_command(int client_fd, std::istringstream& iss);
 		void	handle_user_command(int client_fd, std::istringstream& iss);
+		void	handle_join_command(int client_fd, std::istringstream& iss);
 		
 		void	check_registration_complete(int client_fd);
 		bool	is_nickname_in_use(const std::string& nickname);
@@ -123,10 +137,18 @@ class Server_class
 		std::string	get_client_prefix(const Client& client);
 		std::string	to_upper(const std::string& str);
 
+
+		void	Join_channel(int client_fd, std::string channel_name, std::vector<std::string> &keys);
+		std::vector<std::string>	Split_by_comma(std::string &channels);
+
+
 		static void signal_handler(int signum);
-		void shutdown_server();
+		void 		shutdown_server();
 };
 
 // / int poll(struct pollfd *fds, nfds_t nfds, int timeout);
 
 // The function poll takes an array of pollfd, checks each fd for the event specified in events and write what actually happened in revents
+
+
+bool	check_if_valid_channel_name(std::string name);

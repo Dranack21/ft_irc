@@ -132,3 +132,25 @@ void Server_class::shutdown_server() //function to shutdown the server to not ge
     }
     std::cout << "Server shutdown complete." << std::endl;
 }
+
+std::vector<std::string> Server_class::Split_by_comma(std::string &channels_str)
+{
+	size_t	pos;
+	size_t	old_pos = 0;
+	std::string substr;
+	std::vector<std::string> channels_vector;
+
+	pos = channels_str.find(",");
+	while (pos != std::string::npos)
+	{
+		substr = channels_str.substr(old_pos, pos - old_pos);
+		if (!substr.empty())
+			channels_vector.push_back(substr);
+		old_pos = pos + 1;
+		pos = channels_str.find(",", old_pos);
+	}
+	substr = channels_str.substr(old_pos);
+	if (!substr.empty())
+		channels_vector.push_back(substr);
+	return channels_vector;
+}
