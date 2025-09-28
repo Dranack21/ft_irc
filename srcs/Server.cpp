@@ -23,9 +23,14 @@ Server_class::~Server_class()
 
 void	Server_class::Setup_server(int port, std::string password)
 {
+
+	int opt = 1;
+    setsockopt(this->Server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    
 	this->Server_socket = socket(AF_INET ,SOCK_STREAM, 0);
 	this->server_password = password;
 	this->socket_addr.sin_port = htons(port);
+
 	if (fcntl(this->Server_socket, F_SETFL, O_NONBLOCK) < 0)
 		throw std::runtime_error("Fcntl flag set failed");
 	if (bind(this->Server_socket, (struct sockaddr *)&socket_addr, sizeof(sockaddr)) < 0)
