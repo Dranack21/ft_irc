@@ -21,7 +21,6 @@ void	Server_class::handle_join_command(int client_fd, std::istringstream& iss)
 	std::vector<std::string> 	keys;
 	std::string					channels_str, key, extra;
 	
-	iss >> channels_str >> key >> extra;
 	if (!(iss >> channels_str))
 	{
 		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters");
@@ -35,21 +34,16 @@ void	Server_class::handle_join_command(int client_fd, std::istringstream& iss)
 		return ;
 	}
 	channels = Split_by_comma(channels_str);
-	keys = Split_by_comma(key);
-	for (int i = 0; i++ ; i < channels.size())
+	if (has_keys == true)
+		keys = Split_by_comma(key);
+	for (std::vector<std::string>::iterator it = channels.begin(); it < channels.end(); it++)
 	{
-		if (check_if_valid_channel_name(channels[i]))
-		{
+		if (check_if_valid_channel_name(*it))  
 			send_error_mess(client_fd, ERR_NOSUCHCHANNEL, "Invalid characters found in channel name");
-			return ;
-		}
 		else
-			Join_channel(client_fd, channels[i], keys);
+			Join_channel(client_fd, *it, keys);
 	}
 }
-
-
-
 
 void	Server_class::handle_pass_command(int client_fd, std::istringstream& iss)
 {

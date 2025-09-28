@@ -1,5 +1,11 @@
 #include "ft_irc.hpp"
 
+Channel::Channel()
+{
+	topic = "";
+	created = false;
+}
+
 bool	check_if_valid_channel_name(std::string name)
 {
 	size_t pos;
@@ -21,13 +27,40 @@ bool	check_if_valid_channel_name(std::string name)
 	return true;
 }
 
+void Server_class::Welcome_msg_channel(int client_fd, std::string& channel_name)
+{
+    std::string nickname = this->clients[client_fd].get_nickname();
+    
+    if (!this->channels[channel_name].topic.empty())
+    {
+        std::string msg = ":server 332 " + nickname + " " + channel_name + " :" + this->channels[channel_name].topic + "\r\n";
+        send(client_fd, msg.c_str(), msg.length(), 0);
+    }
+    else
+    {
+        std::string msg = ":server 331 " + nickname + " " + channel_name + " :No topic is set\r\n";
+        send(client_fd, msg.c_str(), msg.length(), 0);
+    }
+    std::string names = "";
+    std::vector<int>::iterator it;
+    for (it = this->channels[channel_name].Clients.begin(); it != this->channels[channel_name].Clients.end(); ++it)
+    {
+        if (it != this->channels[channel_name].Clients.begin())
+            names += " ";
+        names += this->clients[*it].get_nickname();
+    }
+    std::string namreply = ":server 353 " + nickname + " = " + channel_name + " :" + names + "\r\n";
+    send(client_fd, namreply.c_str(), namreply.length(), 0);
+    std::string endnames = ":server 366 " + nickname + " " + channel_name + " :End of /NAMES list\r\n";
+    send(client_fd, endnames.c_str(), endnames.length(), 0);
+}
+
 void	Server_class::Join_channel(int client_fd, std::string channel_name, std::vector<std::string> &keys)
 {
 	std::vector<std::string>::iterator it;
 
 	if (this->channels.empty() || this->channels[channel_name].created == false)
 	{
-		///WE CREATE IT OURSELVES
 		this->channels[channel_name].created = true;
 		this->channels[channel_name].Operators.push_back(client_fd);
 		this->channels[channel_name].Clients.push_back(client_fd);
@@ -40,14 +73,17 @@ void	Server_class::Join_channel(int client_fd, std::string channel_name, std::ve
 			it = keys.begin();
 			keys.erase(it);
 		}
+		Welcome_msg_channel(client_fd, channel_name);
 	}
-	else
+	else ///channel alredy e
 	{
-		////CHANNEL ALREDYE EXISTS
 		if (!keys.empty() && this->channels[channel_name].has_password == true)
 		{
 			if (this->channels[channel_name].password == *keys.begin())
+			{
 				this->channels[channel_name].Clients.push_back(client_fd);
+				Welcome_msg_channel(client_fd, channel_name);
+			}
 			else
 				send_error_mess(client_fd, ERR_BADCHANNELKEY, "Wrong Channel Key to join: ", channel_name);
 		}
@@ -58,6 +94,7 @@ void	Server_class::Join_channel(int client_fd, std::string channel_name, std::ve
 		else if (keys.empty() && this->channels[channel_name].has_password == false)
 		{
 			this->channels[channel_name].Clients.push_back(client_fd);
+			Welcome_msg_channel(client_fd, channel_name);
 		}
 	}
 }

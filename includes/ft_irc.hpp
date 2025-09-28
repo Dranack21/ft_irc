@@ -23,6 +23,11 @@
 #define RPL_CREATED 003
 #define RPL_MYINFO 004
 
+#define RPL_NOTOPIC 331
+#define RPL_TOPIC 332
+#define RPL_NAMREPLY 353
+#define RPL_ENDOFNAMES 366
+
 #define ERR_NOSUCHNICK 401
 #define ERR_NOSUCHCHANNEL 403
 #define ERR_CANNOTSENDTOCHAN 404
@@ -52,7 +57,8 @@ struct s_a
 
 struct Channel
 {
-	bool		created = false;
+	Channel();
+	bool		created;
 	std::string name;
 	std::string topic;
 	std::string password;
@@ -60,6 +66,7 @@ struct Channel
 	std::vector<int> Clients;	//vecteur d'int contenant les FD des clients 
 	std::vector<int> Operators; //vecteur d'int contenant les FD des operateurs
 };
+
 class Client    
 {
 	private:
@@ -138,7 +145,8 @@ class Server_class
 		std::string	to_upper(const std::string& str);
 
 
-		void	Join_channel(int client_fd, std::string channel_name, std::vector<std::string> &keys);
+		void						Join_channel(int client_fd, std::string channel_name, std::vector<std::string> &keys);
+		void						Welcome_msg_channel(int client_fd, std::string& channel_name);
 		std::vector<std::string>	Split_by_comma(std::string &channels);
 
 
@@ -149,6 +157,5 @@ class Server_class
 // / int poll(struct pollfd *fds, nfds_t nfds, int timeout);
 
 // The function poll takes an array of pollfd, checks each fd for the event specified in events and write what actually happened in revents
-
 
 bool	check_if_valid_channel_name(std::string name);
