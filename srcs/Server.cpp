@@ -25,9 +25,10 @@ void	Server_class::Setup_server(int port, std::string password)
 {
 
 	int opt = 1;
-    setsockopt(this->Server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
     
 	this->Server_socket = socket(AF_INET ,SOCK_STREAM, 0);
+	setsockopt(this->Server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); //SO_REUSEADDR allows you to rebind to the same port immediately after closing
+
 	this->server_password = password;
 	this->socket_addr.sin_port = htons(port);
 
@@ -139,9 +140,16 @@ void	Server_class::parse_for_register(int client_fd, const std::string& complete
 	if (command == "PASS")
 		handle_pass_command(client_fd, iss);
 	else if (command == "NICK")
-		handle_nick_command(client_fd, iss);
+		handle_nick_command(client_fd, iss);//have to change the way it sends the return mess when someone changes his nick after being registered
 	else if (command == "USER")
 		handle_user_command(client_fd, iss);
+	else if (command == "PING")//this is for irssi client to not get disconnected after a while 
+	{
+    	 std::string token;
+    	iss >> token;
+    	std::string response = ":" + server_name + " PONG " + server_name + " :" + token + "\r\n";
+    	send(client_fd, response.c_str(), response.length(), 0);
+	}
 	else
 	{
 		if (!this->clients[client_fd].is_fully_authenticated())

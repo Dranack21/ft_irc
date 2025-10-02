@@ -142,6 +142,7 @@ class Server_class
 		void	handle_user_command(int client_fd, std::istringstream& iss);
 		void	handle_join_command(int client_fd, std::istringstream& iss);
 		void	handle_priv_command(int client_fd, std::istringstream& iss);
+		void	handle_mode_command(int client_fd, std::istringstream& iss);
 		
 		void	check_registration_complete(int client_fd);
 		bool	is_nickname_in_use(const std::string& nickname);

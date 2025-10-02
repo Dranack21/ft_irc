@@ -11,9 +11,64 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 		handle_join_command(client_fd, iss);
 	else if (command == "PRIVMSG")
 		handle_priv_command(client_fd, iss);
+	else if (command == "MODE")
+	{
+
+	}
+	 else if (command == "WHO")
+    {
+        std::string response = ":" + server_name + " 315 " + 
+                             this->clients[client_fd].get_nickname() + 
+                             " * :End of WHO list\r\n";
+        send(client_fd, response.c_str(), response.length(), 0);
+    }
+    else if (command == "PING")
+    {
+        std::string token;
+        iss >> token;
+        std::string response = ":" + server_name + " PONG " + server_name + " :" + token + "\r\n";
+        send(client_fd, response.c_str(), response.length(), 0);
+    }
 	else
 		send_error_mess(client_fd, ERR_UNKNOWNCOMMAND, "UNKNOW COMMAND");
     
+}
+
+void Server_class::handle_mode_command(int client_fd, std::istringstream& iss) //is bare minimum to make it work for now
+{
+    std::string target;
+    iss >> target;
+    
+    if (target.empty())
+    {
+        send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "MODE");
+        return;
+    }
+    if (target[0] != '#')
+    {
+        std::string mode_str;
+        iss >> mode_str;
+        
+        if (!mode_str.empty())
+        {
+            std::string response = ":" + this->clients[client_fd].get_nickname() + 
+                                 " MODE " + target + " " + mode_str + "\r\n";
+            send(client_fd, response.c_str(), response.length(), 0);
+        }
+        else
+        {
+            std::string response = ":" + server_name + " 221 " + 
+                                 this->clients[client_fd].get_nickname() + 
+                                 " +\r\n";
+            send(client_fd, response.c_str(), response.length(), 0);
+        }
+    }
+    else
+    {
+        // Channel modes - would need to check if user is in channel
+        // For now, just send a basic error or implement channel mode logic
+        send_error_mess(client_fd, ERR_UNKNOWNCOMMAND, "Channel MODE not yet implemented");
+    }
 }
 
 void	Server_class::handle_priv_command(int client_fd, std::istringstream& iss)

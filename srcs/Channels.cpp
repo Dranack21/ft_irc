@@ -97,15 +97,15 @@ void	Server_class::Join_channel(int client_fd, std::string channel_name, std::ve
 }
 
 
-void	Server_class::send_message_to_channel(int client_fd, const std::string &channel_name, const std::string &buffer)
-{
-	if (this->channels[channel_name].created == false)
-		send_error_mess(client_fd, ERR_NOSUCHCHANNEL, channel_name + ": This channel does not exist");
-	else if (this->channels[channel_name].created)
-}
+// void	Server_class::send_message_to_channel(int client_fd, const std::string &channel_name, const std::string &buffer)
+// {
+// 	if (this->channels[channel_name].created == false)
+// 		send_error_mess(client_fd, ERR_NOSUCHCHANNEL, channel_name + ": This channel does not exist");
+// 	else if (this->channels[channel_name].created)
+// }
 
-//this function is only to be called when said channel is SURE to be created
-bool	Channel::is_client_in_channel(int client_fd, std::string& nickname)
-{
+// //this function is only to be called when said channel is SURE to be created
+// bool	Channel::is_client_in_channel(int client_fd, std::string& nickname)
+// {
 	
-}
+// }
