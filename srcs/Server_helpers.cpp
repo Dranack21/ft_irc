@@ -82,6 +82,13 @@ void	Server_class::read_message(int client_fd, const std::string& buffer)
               << "Client " << client_fd << " sent: " << buffer << std::endl;
 }
 
+void	Server_class::server_history(const std::string& buffer)
+{
+	std::time_t now = std::time(0);
+    char* timestr = std::ctime(&now);
+	std::cout << "[" << std::string(timestr).substr(0, 24) << "] " << buffer << std::endl;
+}
+
 std::string Server_class::get_client_prefix(const Client& client) //function to get the prefix of a client like nickname!username@hostname we need this for messages
 {
 	return client.get_nickname() + "!" + client.get_username() + "@" + server_name;
@@ -153,4 +160,32 @@ std::vector<std::string> Server_class::Split_by_comma(std::string &channels_str)
 	if (!substr.empty())
 		channels_vector.push_back(substr);
 	return channels_vector;
+}
+
+
+bool Server_class::is_existing_receiver(std::string &receiver)
+{
+	std::map<int, Client>::iterator it;
+	std::map<std::string, Channel>::iterator channel_it;
+	std::string		username;
+	std::string		channels;				
+
+	it = this->clients.begin();
+	while (it != this->clients.end())
+	{
+		username = it->second.get_nickname();
+		if (username == receiver)
+			return (true);
+		it++;
+	}
+
+	channel_it = this->channels.begin();
+	while (channel_it != this->channels.end())
+	{
+		channels = channel_it->second.name;
+		if (channels == receiver)
+			return (true);
+		channel_it++;
+	}
+	return false;
 }

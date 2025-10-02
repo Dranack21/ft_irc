@@ -9,9 +9,52 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
     iss >> command;
 	if (command == "JOIN")
 		handle_join_command(client_fd, iss);
+	else if (command == "PRIVMSG")
+		handle_priv_command(client_fd, iss);
 	else
 		send_error_mess(client_fd, ERR_UNKNOWNCOMMAND, "UNKNOW COMMAND");
     
+}
+
+void	Server_class::handle_priv_command(int client_fd, std::istringstream& iss)
+{
+	std::string					message, receivers_str, temp; 
+	std::vector<std::string>	receivers;
+	std::string					client_nick;
+
+	client_nick = this->clients[client_fd].get_nickname();
+	if (!(iss >> receivers_str))
+	{
+		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "PRIVMSG :Need at least a recipient");
+		return;
+	}
+	if (!(iss >> message))
+	{
+		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "PRIVMSG :Need a message to be sent and at least a recipient");
+		return ;
+	}
+	if (message[0] != ':')
+	{
+		send_error_mess(client_fd, ERR_UNKNOWNERROR, "PRIVMSG :Invalid synthax");
+		return ;
+	}
+	receivers = Split_by_comma(receivers_str);
+	while (iss >> temp)
+		message += " " + temp;
+	message += "\r\n";
+	for(std::vector<std::string>::iterator it = receivers.begin(); it != receivers.end(); it++)
+	{
+		if (is_existing_receiver(*it))
+		{
+			if (send(client_fd, message.c_str(), message.length(), 0) != -1)
+				server_history("Relaying message from " + client_nick + "to " + *it);
+		}
+		else
+		{
+			send_error_mess(client_fd, 401, client_nick + " :No such nick/channel", *it);
+			server_history("Sending to " + client_nick + server_name + "401 No such nick/channel");
+		}
+	}
 }
 
 void	Server_class::handle_join_command(int client_fd, std::istringstream& iss)
@@ -38,7 +81,7 @@ void	Server_class::handle_join_command(int client_fd, std::istringstream& iss)
 		keys = Split_by_comma(key);
 	for (std::vector<std::string>::iterator it = channels.begin(); it < channels.end(); it++)
 	{
-		if (check_if_valid_channel_name(*it))  
+		if (!check_if_valid_channel_name(*it))  
 			send_error_mess(client_fd, ERR_NOSUCHCHANNEL, "Invalid characters found in channel name");
 		else
 			Join_channel(client_fd, *it, keys);

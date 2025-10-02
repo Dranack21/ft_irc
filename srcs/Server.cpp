@@ -123,7 +123,6 @@ void	Server_class::handle_message(int client_fd, const std::string& data)
 	while ((pos = this->clients[client_fd].buffer.find("\r\n") )!= std::string::npos)
 	{
 		complete_message = this->clients[client_fd].buffer.substr(0, pos);
-		
 		this->clients[client_fd].buffer.erase(0, pos + 2);
 		read_message(client_fd, complete_message);
 		parse_for_register(client_fd, complete_message);
@@ -148,7 +147,16 @@ void	Server_class::parse_for_register(int client_fd, const std::string& complete
 		if (!this->clients[client_fd].is_fully_authenticated())
 			send_error_mess(client_fd, ERR_ALREADYREGISTRED, "You have not registered");
 		else
-			parse_and_execute_command(client_fd, complete_message);
+		{
+			try
+			{
+				parse_and_execute_command(client_fd, complete_message);
+			}
+			catch (std::exception &e)
+			{
+				 std::cout << e.what() << std::endl;
+			}
+		}
 	}
 }
 

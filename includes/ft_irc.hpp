@@ -28,6 +28,7 @@
 #define RPL_NAMREPLY 353
 #define RPL_ENDOFNAMES 366
 
+#define ERR_UNKNOWNERROR 400
 #define ERR_NOSUCHNICK 401
 #define ERR_NOSUCHCHANNEL 403
 #define ERR_CANNOTSENDTOCHAN 404
@@ -65,6 +66,8 @@ struct Channel
 	bool	has_password;
 	std::vector<int> Clients;	//vecteur d'int contenant les FD des clients 
 	std::vector<int> Operators; //vecteur d'int contenant les FD des operateurs
+	
+	bool						is_client_in_channel(int client_fd, std::string& nickname);
 };
 
 class Client    
@@ -121,6 +124,8 @@ class Server_class
 		void	Setup_server(int port, std::string password);
 		void	Accept_and_poll();
 		void	process_client_activity();
+
+		void	server_history(const std::string &buffer);
 		void	read_message(int client_fd, const std::string& buffer);
 		void	parse_for_register(int client_fd, const std::string &complete_message);
 		void	parse_and_execute_command(int client_fd, const std::string &complete_message);
@@ -136,6 +141,7 @@ class Server_class
 		void	handle_nick_command(int client_fd, std::istringstream& iss);
 		void	handle_user_command(int client_fd, std::istringstream& iss);
 		void	handle_join_command(int client_fd, std::istringstream& iss);
+		void	handle_priv_command(int client_fd, std::istringstream& iss);
 		
 		void	check_registration_complete(int client_fd);
 		bool	is_nickname_in_use(const std::string& nickname);
@@ -144,11 +150,14 @@ class Server_class
 		std::string	get_client_prefix(const Client& client);
 		std::string	to_upper(const std::string& str);
 
-
+		////CHANNELS
 		void						Join_channel(int client_fd, std::string channel_name, std::vector<std::string> &keys);
+		void						send_message_to_channel(int client_fd,const std::string &channel,  const std::string &buffer);
 		void						Welcome_msg_channel(int client_fd, std::string& channel_name);
 		std::vector<std::string>	Split_by_comma(std::string &channels);
 
+		////PRIVMSG
+		bool is_existing_receiver(std::string &receiver);
 
 		static void signal_handler(int signum);
 		void 		shutdown_server();
