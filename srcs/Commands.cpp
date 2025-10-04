@@ -9,7 +9,7 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
     iss >> command;
 	if (command == "JOIN")
 		handle_join_command(client_fd, iss);
-	else if (command == "MSG")
+	else if (command == "PRIVMSG")
 		handle_priv_command(client_fd, iss);
 	else if (command == "MODE")
 		handle_mode_command(client_fd, iss);
@@ -83,30 +83,40 @@ void	Server_class::handle_priv_command(int client_fd, std::istringstream& iss)
 	if (message[0] != ':')
 		return(send_error_mess(client_fd, ERR_UNKNOWNERROR, "PRIVMSG :Invalid synthax"));
 
+	std::cout << "DEBUG PRIVMSG: receivers_str = '" << receivers_str << "'" << std::endl;
 	client_sender_nick = this->clients[client_fd].get_nickname();
 	receivers = Split_by_comma(receivers_str);
+	std::cout << "DEBUG PRIVMSG: receivers = [";
+	for (size_t i = 0; i < receivers.size(); i++) {
+		std::cout << "'" << receivers[i] << "'";
+		if (i < receivers.size() - 1) std::cout << ", ";
+	}
+	std::cout << "]" << std::endl;
 	while (iss >> temp)
 		message += " " + temp;
 	message += "\r\n";
 	for(std::vector<std::string>::iterator it = receivers.begin(); it != receivers.end(); it++)
-	{
-		receiver_fd = (is_existing_client(*it));
-		if (receiver_fd != -1)
-		{
-			if (send(receiver_fd, message.c_str(), message.length(), 0) != -1)
-				server_history("Relaying message from " + client_sender_nick + "to " + *it);
-		}
-		else if (is_existing_channel(*it))
-		{
-			send_message_to_channel(client_fd, *it, message);
-			server_history(client_fd + " sent a message on channel: " + *it + '\r' +'\n');
-		}
-		else
-		{
-			send_error_mess(client_fd, 401, client_sender_nick + " :No such nick/channel", *it);
-			server_history("Sending to " + client_sender_nick + server_name + "401 No such nick/channel");
-		}
-	}
+{
+    receiver_fd = (is_existing_client(*it));
+    if (receiver_fd != -1)
+    {
+        // Format: :nick!user@host PRIVMSG target :message
+        std::string formatted = ":" + client_sender_nick + "!~" + this->clients[client_fd].get_username() + "@localhost PRIVMSG " + *it + " " + message;
+        if (send(receiver_fd, formatted.c_str(), formatted.length(), 0) != -1)
+            server_history("Relaying message from " + client_sender_nick + " to " + *it);
+    }
+    else if (is_existing_channel(*it))
+    {
+        // Format: :nick!user@host PRIVMSG #channel :message
+        std::string formatted = ":" + client_sender_nick + "!~" + this->clients[client_fd].get_username() + "@localhost PRIVMSG " + *it + " " + message;
+        send_message_to_channel(client_fd, *it, formatted);
+        server_history(client_sender_nick + " sent a message on channel: " + *it);
+    }
+    else
+    {
+        send_error_mess(client_fd, 401, *it + " :No such nick/channel");
+    }
+}
 }
 
 void	Server_class::handle_join_command(int client_fd, std::istringstream& iss)

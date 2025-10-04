@@ -81,6 +81,7 @@ void	Server_class::send_message_to_channel(int client_fd, const std::string &cha
 		it2 = this->channels[channel_name].Clients.begin();
 		while(it2 != this->channels[channel_name].Clients.end())
 		{
+			std::cout << "Inside send message to channel loop with client " << *it2 << "message is: "<< buffer << "\n";
 			if (*it2 != client_fd) // don't send to sender
 				send(*it2, buffer.c_str(), buffer.size(), 0);
 			it2++;
