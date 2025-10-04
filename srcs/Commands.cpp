@@ -9,13 +9,11 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
     iss >> command;
 	if (command == "JOIN")
 		handle_join_command(client_fd, iss);
-	else if (command == "PRIVMSG")
+	else if (command == "MSG")
 		handle_priv_command(client_fd, iss);
 	else if (command == "MODE")
-	{
-
-	}
-	 else if (command == "WHO")
+		handle_mode_command(client_fd, iss);
+	else if (command == "WHO")
     {
         std::string response = ":" + server_name + " 315 " + 
                              this->clients[client_fd].get_nickname() + 
@@ -73,41 +71,40 @@ void Server_class::handle_mode_command(int client_fd, std::istringstream& iss) /
 
 void	Server_class::handle_priv_command(int client_fd, std::istringstream& iss)
 {
-	std::string					message, receivers_str, temp; 
+	int	receiver_fd;
+	std::string					message, receivers_str, temp;
 	std::vector<std::string>	receivers;
-	std::string					client_nick;
+	std::string					client_sender_nick;
 
-	client_nick = this->clients[client_fd].get_nickname();
 	if (!(iss >> receivers_str))
-	{
-		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "PRIVMSG :Need at least a recipient");
-		return;
-	}
+		return(send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "PRIVMSG :Need at least a recipient"));
 	if (!(iss >> message))
-	{
-		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "PRIVMSG :Need a message to be sent and at least a recipient");
-		return ;
-	}
+		return (send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "PRIVMSG :Need a message to be sent and at least a recipient"));
 	if (message[0] != ':')
-	{
-		send_error_mess(client_fd, ERR_UNKNOWNERROR, "PRIVMSG :Invalid synthax");
-		return ;
-	}
+		return(send_error_mess(client_fd, ERR_UNKNOWNERROR, "PRIVMSG :Invalid synthax"));
+
+	client_sender_nick = this->clients[client_fd].get_nickname();
 	receivers = Split_by_comma(receivers_str);
 	while (iss >> temp)
 		message += " " + temp;
 	message += "\r\n";
 	for(std::vector<std::string>::iterator it = receivers.begin(); it != receivers.end(); it++)
 	{
-		if (is_existing_receiver(*it))
+		receiver_fd = (is_existing_client(*it));
+		if (receiver_fd != -1)
 		{
-			if (send(client_fd, message.c_str(), message.length(), 0) != -1)
-				server_history("Relaying message from " + client_nick + "to " + *it);
+			if (send(receiver_fd, message.c_str(), message.length(), 0) != -1)
+				server_history("Relaying message from " + client_sender_nick + "to " + *it);
+		}
+		else if (is_existing_channel(*it))
+		{
+			send_message_to_channel(client_fd, *it, message);
+			server_history(client_fd + " sent a message on channel: " + *it + '\r' +'\n');
 		}
 		else
 		{
-			send_error_mess(client_fd, 401, client_nick + " :No such nick/channel", *it);
-			server_history("Sending to " + client_nick + server_name + "401 No such nick/channel");
+			send_error_mess(client_fd, 401, client_sender_nick + " :No such nick/channel", *it);
+			server_history("Sending to " + client_sender_nick + server_name + "401 No such nick/channel");
 		}
 	}
 }
@@ -146,8 +143,12 @@ void	Server_class::handle_join_command(int client_fd, std::istringstream& iss)
 void	Server_class::handle_pass_command(int client_fd, std::istringstream& iss)
 {
 	std::string password;
-	iss >> password;
 	
+	if(!(iss >> password))
+	{
+		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "PASS");
+		return;
+	}
 	if (password.empty())
 	{
 		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "PASS");

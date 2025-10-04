@@ -66,7 +66,6 @@ struct Channel
 	bool	has_password;
 	std::vector<int> Clients;	//vecteur d'int contenant les FD des clients 
 	std::vector<int> Operators; //vecteur d'int contenant les FD des operateurs
-	
 	bool						is_client_in_channel(int client_fd, std::string& nickname);
 };
 
@@ -82,6 +81,7 @@ class Client
 		bool has_user;
 
     public:
+		int			last_client;
 	    std::string buffer;
 		Client();
 		Client(int client_fd);
@@ -89,18 +89,18 @@ class Client
 		~Client();
 
 		int get_fd() const { return fd; }
-		std::string get_username() const { return username; }
-		std::string get_nickname() const { return nickname; }
-		std::string get_realname() const { return realname; }
-		bool is_authenticated() const { return authenticated; }
-		bool has_username() const { return has_user; }
-		bool has_nickname() const { return has_nick; }
-		bool is_fully_authenticated() const { return authenticated && has_nick && has_user; }
+		std::string	get_username() const { return username; }
+		std::string	get_nickname() const { return nickname; }
+		std::string	get_realname() const { return realname; }
+		bool	is_authenticated() const { return authenticated; }
+		bool	has_username() const { return has_user; }
+		bool	has_nickname() const { return has_nick; }
+		bool	is_fully_authenticated() const { return authenticated && has_nick && has_user; }
 
-		void set_realname(const std::string& real);
-		void set_username(const std::string& user);
-		void set_nickname(const std::string& nick);
-		void set_authenticated(bool auth);
+		void	set_realname(const std::string& real);
+		void	set_username(const std::string& user);
+		void	set_nickname(const std::string& nick);
+		void	set_authenticated(bool auth);
 };
 
 class Server_class
@@ -143,6 +143,7 @@ class Server_class
 		void	handle_join_command(int client_fd, std::istringstream& iss);
 		void	handle_priv_command(int client_fd, std::istringstream& iss);
 		void	handle_mode_command(int client_fd, std::istringstream& iss);
+		void	handle_ping_command(int client_fd, std::istringstream& iss);
 		
 		void	check_registration_complete(int client_fd);
 		bool	is_nickname_in_use(const std::string& nickname);
@@ -156,9 +157,12 @@ class Server_class
 		void						send_message_to_channel(int client_fd,const std::string &channel,  const std::string &buffer);
 		void						Welcome_msg_channel(int client_fd, std::string& channel_name);
 		std::vector<std::string>	Split_by_comma(std::string &channels);
+		int							get_fd_from_nick(std::string nick);
 
 		////PRIVMSG
-		bool is_existing_receiver(std::string &receiver);
+		bool	is_existing_receiver(std::string &receiver);
+		bool	is_existing_channel(std::string &receciver);
+		int		is_existing_client(std::string &receiver);
 
 		static void signal_handler(int signum);
 		void 		shutdown_server();

@@ -140,16 +140,13 @@ void	Server_class::parse_for_register(int client_fd, const std::string& complete
 	if (command == "PASS")
 		handle_pass_command(client_fd, iss);
 	else if (command == "NICK")
-		handle_nick_command(client_fd, iss);//have to change the way it sends the return mess when someone changes his nick after being registered
+		handle_nick_command(client_fd, iss);
 	else if (command == "USER")
 		handle_user_command(client_fd, iss);
 	else if (command == "PING")//this is for irssi client to not get disconnected after a while 
-	{
-    	 std::string token;
-    	iss >> token;
-    	std::string response = ":" + server_name + " PONG " + server_name + " :" + token + "\r\n";
-    	send(client_fd, response.c_str(), response.length(), 0);
-	}
+		handle_ping_command(client_fd, iss);
+	else if (command == "CAP")
+		send(client_fd, ":myserver CAP * LS :\r\n", strlen(":myserver CAP * LS :\r\n"), 0);
 	else
 	{
 		if (!this->clients[client_fd].is_fully_authenticated())
@@ -166,23 +163,4 @@ void	Server_class::parse_for_register(int client_fd, const std::string& complete
 			}
 		}
 	}
-}
-
-void	Server_class::send_welcome_sequence(int client_fd)//sends the welcome messages after registration is complete (error in send_error_mess isn't a fitting name here)
-{
-	Client& client = this->clients[client_fd];
-	std::string nickname = client.get_nickname();
-	std::string username = client.get_username();
-
-	std::string welcome_msg = "Welcome to the " + server_name + " Network, " + nickname + "." + username + "@" + server_name;
-	send_error_mess(client_fd, RPL_WELCOME, welcome_msg);
-
-	std::string host_msg = "Your host is " + server_name + ", running version " + server_version;
-	send_error_mess(client_fd, RPL_YOURHOST, host_msg);
-
-	std::string created_msg = "This server was created " + creation_date;
-	send_error_mess(client_fd, RPL_CREATED, created_msg);
-
-	std::string info_msg = server_name + " " + server_version + " o o";
-	send_error_mess(client_fd, RPL_MYINFO, info_msg);
 }

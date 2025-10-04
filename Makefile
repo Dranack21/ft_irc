@@ -11,7 +11,10 @@ SRCS    = main.cpp \
 			srcs/Client.cpp \
 			srcs/Commands.cpp \
 			srcs/Channels.cpp\
-			srcs/Server_helpers.cpp
+			srcs/Server_helpers.cpp\
+			srcs/Client_helpers.cpp\
+			srcs/Commands_helpers.cpp\
+			srcs/Channels_helpers.cpp\
 			
 ### OBJS ###########################################################################
 

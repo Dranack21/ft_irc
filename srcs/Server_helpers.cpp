@@ -2,11 +2,34 @@
 
 Server_class* Server_class::instance = NULL; //needed for signal handling
 
-void	Server_class::send_error_message(int client_fd, std::string error_msg)
+// void	Server_class::send_error_message(int client_fd, std::string error_msg)
+// {
+// 	std::string response = "ERROR :" + error_msg + "\r\n";
+// 	send(client_fd, response.c_str(), response.length(), 0);
+// }
+
+
+
+
+void	Server_class::send_welcome_sequence(int client_fd)//sends the welcome messages after registration is complete (error in send_error_mess isn't a fitting name here)
 {
-	std::string response = "ERROR :" + error_msg + "\r\n";
-	send(client_fd, response.c_str(), response.length(), 0);
+	Client& client = this->clients[client_fd];
+	std::string nickname = client.get_nickname();
+	std::string username = client.get_username();
+
+	std::string welcome_msg = "Welcome to the " + server_name + " Network, " + nickname + "." + username + "@" + server_name;
+	send_error_mess(client_fd, RPL_WELCOME, welcome_msg);
+
+	std::string host_msg = "Your host is " + server_name + ", running version " + server_version;
+	send_error_mess(client_fd, RPL_YOURHOST, host_msg);
+
+	std::string created_msg = "This server was created " + creation_date;
+	send_error_mess(client_fd, RPL_CREATED, created_msg);
+
+	std::string info_msg = server_name + " " + server_version + " o o";
+	send_error_mess(client_fd, RPL_MYINFO, info_msg);
 }
+
 
 //error function that makes an output like :
 // :<server_name> <numeric> <nickname or *> <target> :<message>
@@ -78,15 +101,20 @@ void	Server_class::read_message(int client_fd, const std::string& buffer)
 {
     std::time_t now = std::time(0);
     char* timestr = std::ctime(&now);
-    std::cout << "[" << std::string(timestr).substr(0, 24) << "] " 
-              << "Client " << client_fd << " sent: " << buffer << std::endl;
+	if (buffer.find("PING") == std::string::npos)
+	{
+		std::cout << "[" << std::string(timestr).substr(0, 24) << "] " 
+		<< "Client " << client_fd << " sent: " << buffer << std::endl;
+	}
 }
 
 void	Server_class::server_history(const std::string& buffer)
 {
 	std::time_t now = std::time(0);
     char* timestr = std::ctime(&now);
-	std::cout << "[" << std::string(timestr).substr(0, 24) << "] " << buffer << std::endl;
+
+	if (buffer.find("PING") == std::string::npos)
+		std::cout << "[" << std::string(timestr).substr(0, 24) << "] " << buffer << std::endl;
 }
 
 std::string Server_class::get_client_prefix(const Client& client) //function to get the prefix of a client like nickname!username@hostname we need this for messages
@@ -162,30 +190,12 @@ std::vector<std::string> Server_class::Split_by_comma(std::string &channels_str)
 	return channels_vector;
 }
 
-
-bool Server_class::is_existing_receiver(std::string &receiver)
+void Server_class::handle_ping_command(int client_fd, std::istringstream& iss)
 {
-	std::map<int, Client>::iterator it;
-	std::map<std::string, Channel>::iterator channel_it;
-	std::string		username;
-	std::string		channels;				
+	std::string token;
+	std::string response;
 
-	it = this->clients.begin();
-	while (it != this->clients.end())
-	{
-		username = it->second.get_nickname();
-		if (username == receiver)
-			return (true);
-		it++;
-	}
-
-	channel_it = this->channels.begin();
-	while (channel_it != this->channels.end())
-	{
-		channels = channel_it->second.name;
-		if (channels == receiver)
-			return (true);
-		channel_it++;
-	}
-	return false;
+    iss >> token;
+    response = ":" + server_name + " PONG " + server_name + " :" + token + "\r\n";
+    send(client_fd, response.c_str(), response.length(), 0);
 }

@@ -6,52 +6,6 @@ Channel::Channel()
 	created = false;
 }
 
-bool	check_if_valid_channel_name(std::string name)
-{
-	size_t pos;
-
-	if (name.empty() || (name[0] != '&' && name[0] != '#'))
-		return false;
-	pos = name.find(' ');
-	if (pos != std::string::npos)
-		return false;
-	pos = name.find('\t');
-	if (pos != std::string::npos)
-		return false;
-	pos = name.find('\r');
-	if (pos != std::string::npos)
-		return false;
-	return true;
-}
-
-void Server_class::Welcome_msg_channel(int client_fd, std::string& channel_name)
-{
-    std::string nickname = this->clients[client_fd].get_nickname();
-    
-    if (!this->channels[channel_name].topic.empty())
-    {
-        std::string msg = ":server 332 " + nickname + " " + channel_name + " :" + this->channels[channel_name].topic + "\r\n";
-        send(client_fd, msg.c_str(), msg.length(), 0);
-    }
-    else
-    {
-        std::string msg = ":server 331 " + nickname + " " + channel_name + " :No topic is set\r\n";
-        send(client_fd, msg.c_str(), msg.length(), 0);
-    }
-    std::string names = "";
-    std::vector<int>::iterator it;
-    for (it = this->channels[channel_name].Clients.begin(); it != this->channels[channel_name].Clients.end(); ++it)
-    {
-        if (it != this->channels[channel_name].Clients.begin())
-            names += " ";
-        names += this->clients[*it].get_nickname();
-    }
-    std::string namreply = ":server 353 " + nickname + " = " + channel_name + " :" + names + "\r\n";
-    send(client_fd, namreply.c_str(), namreply.length(), 0);
-    std::string endnames = ":server 366 " + nickname + " " + channel_name + " :End of /NAMES list\r\n";
-    send(client_fd, endnames.c_str(), endnames.length(), 0);
-}
-
 void	Server_class::Join_channel(int client_fd, std::string channel_name, std::vector<std::string> &keys)
 {
 	std::vector<std::string>::iterator it;
@@ -99,12 +53,42 @@ void	Server_class::Join_channel(int client_fd, std::string channel_name, std::ve
 
 // void	Server_class::send_message_to_channel(int client_fd, const std::string &channel_name, const std::string &buffer)
 // {
-// 	if (this->channels[channel_name].created == false)
-// 		send_error_mess(client_fd, ERR_NOSUCHCHANNEL, channel_name + ": This channel does not exist");
-// 	else if (this->channels[channel_name].created)
+// 	std::vector<int>::iterator it2;
+// 	std::map<std::string, Channel>::iterator it;
+
+// 	if (this->channels[channel_name].created == true)
+// 	{
+// 		it = this->channels.begin();
+// 		it2 = it->second.Clients.begin();
+// 		while(it2 != it->second.Clients.end())
+// 		{
+// 			send(*it2, buffer.c_str(), buffer.size(), 0);
+// 			this->server_history(client_fd + " sent a PRIVMSG to " + *it2 + '\r' + '\n');
+// 			it2++;
+// 		}
+// 	}
 // }
 
-// //this function is only to be called when said channel is SURE to be created
+
+void	Server_class::send_message_to_channel(int client_fd, const std::string &channel_name, const std::string &buffer)
+{
+	std::vector<int>::iterator it2;
+
+	if (this->channels[channel_name].created == false)
+		send_error_mess(client_fd, ERR_NOSUCHCHANNEL, channel_name + ": This channel does not exist");
+	else if (this->channels[channel_name].created == true)
+	{
+		it2 = this->channels[channel_name].Clients.begin();
+		while(it2 != this->channels[channel_name].Clients.end())
+		{
+			if (*it2 != client_fd) // don't send to sender
+				send(*it2, buffer.c_str(), buffer.size(), 0);
+			it2++;
+		}
+	}
+}
+
+//this function is only to be called when said channel is SURE to be created
 // bool	Channel::is_client_in_channel(int client_fd, std::string& nickname)
 // {
 	
