@@ -83,6 +83,7 @@ class Client
     public:
 		int			last_client;
 	    std::string buffer;
+		pollfd		pollfd_copy;
 		Client();
 		Client(int client_fd);
 		Client(std::string username, std::string nickname);
@@ -106,10 +107,10 @@ class Client
 class Server_class
 {
 	private:
-		struct s_a			socket_addr;
-		std::vector<pollfd>	pollfd_vector;
+		struct s_a				socket_addr;
+		std::vector<pollfd>		pollfd_vector;
 		std::map<std::string, Channel> channels;
-		std::map<int, Client> clients;
+		std::map<int, Client>	clients;
 		std::string				server_password;
 		std::string				server_name;
 		std::string				server_version;
@@ -165,6 +166,7 @@ class Server_class
 		int		is_existing_client(std::string &receiver);
 
 		static void signal_handler(int signum);
+		void		disconnect_client(int client_fd);
 		void 		shutdown_server();
 };
 

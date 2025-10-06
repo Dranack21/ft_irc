@@ -28,7 +28,10 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
         send(client_fd, response.c_str(), response.length(), 0);
     }
 	else
+	{
+		std::cout << "UNKNOWN COMMAND FROM CLIENT: " << client_fd << " "<< command << std::endl;
 		send_error_mess(client_fd, ERR_UNKNOWNCOMMAND, "UNKNOW COMMAND");
+	}
     
 }
 
@@ -83,6 +86,7 @@ void	Server_class::handle_priv_command(int client_fd, std::istringstream& iss)
 	if (message[0] != ':')
 		return(send_error_mess(client_fd, ERR_UNKNOWNERROR, "PRIVMSG :Invalid synthax"));
 
+	message = message.substr(1);
 	std::cout << "DEBUG PRIVMSG: receivers_str = '" << receivers_str << "'" << std::endl;
 	client_sender_nick = this->clients[client_fd].get_nickname();
 	receivers = Split_by_comma(receivers_str);
@@ -95,28 +99,29 @@ void	Server_class::handle_priv_command(int client_fd, std::istringstream& iss)
 	while (iss >> temp)
 		message += " " + temp;
 	message += "\r\n";
+	
 	for(std::vector<std::string>::iterator it = receivers.begin(); it != receivers.end(); it++)
-{
-    receiver_fd = (is_existing_client(*it));
-    if (receiver_fd != -1)
-    {
-        // Format: :nick!user@host PRIVMSG target :message
-        std::string formatted = ":" + client_sender_nick + "!~" + this->clients[client_fd].get_username() + "@localhost PRIVMSG " + *it + " " + message;
-        if (send(receiver_fd, formatted.c_str(), formatted.length(), 0) != -1)
-            server_history("Relaying message from " + client_sender_nick + " to " + *it);
-    }
-    else if (is_existing_channel(*it))
-    {
-        // Format: :nick!user@host PRIVMSG #channel :message
-        std::string formatted = ":" + client_sender_nick + "!~" + this->clients[client_fd].get_username() + "@localhost PRIVMSG " + *it + " " + message;
-        send_message_to_channel(client_fd, *it, formatted);
-        server_history(client_sender_nick + " sent a message on channel: " + *it);
-    }
-    else
-    {
-        send_error_mess(client_fd, 401, *it + " :No such nick/channel");
-    }
-}
+	{
+		receiver_fd = (is_existing_client(*it));
+		if (receiver_fd != -1)
+		{
+			std::string formatted = ":" + client_sender_nick + "!~" + this->clients[client_fd].get_username() + "@localhost PRIVMSG " + *it + " :" + message;
+			send(receiver_fd, formatted.c_str(), formatted.size(), 0);
+			std::cout << "Client fd: " << receiver_fd << std::endl;
+			std::cout <<  "message: " << message << std::endl;
+			server_history("Relaying message from " + client_sender_nick + " to " + *it);
+		}
+		else if (is_existing_channel(*it))
+		{
+			std::string formatted = ":" + client_sender_nick + "!~" + this->clients[client_fd].get_username() + "@localhost PRIVMSG " + *it + " :" + message;
+			send_message_to_channel(client_fd, *it, formatted.c_str());
+			server_history(client_sender_nick + " sent a message on channel: " + *it);
+		}
+		else
+		{
+			send_error_mess(client_fd, 401, *it + " :No such nick/channel");
+		}
+	}
 }
 
 void	Server_class::handle_join_command(int client_fd, std::istringstream& iss)
@@ -157,17 +162,20 @@ void	Server_class::handle_pass_command(int client_fd, std::istringstream& iss)
 	if(!(iss >> password))
 	{
 		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "PASS");
+		disconnect_client(client_fd);
 		return;
 	}
 	if (password.empty())
 	{
 		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "PASS");
+		disconnect_client(client_fd);
+
 		return;
 	}
 	
 	if (this->clients[client_fd].is_authenticated())
 	{
-		send_error_mess(client_fd, ERR_ALREADYREGISTRED, "You may not reregister");;
+		send_error_mess(client_fd, ERR_ALREADYREGISTRED, "You may not reregister");
 		return;
 	}
 	
@@ -178,7 +186,8 @@ void	Server_class::handle_pass_command(int client_fd, std::istringstream& iss)
 	}
 	else
 	{
-		send_error_mess(client_fd, ERR_PASSWDMISMATCH, "Password incorrect");
+		send_error_mess(client_fd, ERR_PASSWDMISMATCH, "Password incorrect, closing the connection");
+		disconnect_client(client_fd);
 	}
 }
 

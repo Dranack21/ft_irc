@@ -46,7 +46,7 @@ void	Server_class::Setup_server(int port, std::string password)
 //		-event : what requested event to track
 //		-revent : what actually happened
 //
-// We first monitor the server socket with poll, if poll detects something we enter line 48 and add the new client to the vector of pollfd that we monitor
+// We first monitor the server socket with poll, if poll detects something we add the new client to the vector of pollfd that we monitor
 void	Server_class::Accept_and_poll()
 {
 	int		client_fd;
@@ -73,6 +73,7 @@ void	Server_class::Accept_and_poll()
 			client_pollfd.revents = 0;
 			this->pollfd_vector.push_back(client_pollfd);
 			this->clients[client_fd] = Client(client_fd);
+			this->clients[client_fd].pollfd_copy = client_pollfd;
                 std::cout << "client connected: fd " << client_fd << std::endl;
 		}
         process_client_activity();
@@ -80,8 +81,8 @@ void	Server_class::Accept_and_poll()
 	shutdown_server();
 }
 
-// This function goes thorugh a vector of pollfd more specifically each representing a client connected to our server (index 0)
-// It looks for messaged receveid with revent since we use the function poll before entering this function
+// This function goes through a vector of pollfd more specifically each representing a client connected to our server (index 0)
+// It looks for messaged received with revent since we use the function poll before entering this function
 // Then if a message is received we use the function recv and handle it correctly 
 void Server_class::process_client_activity()
 {

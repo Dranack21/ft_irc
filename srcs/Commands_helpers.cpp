@@ -29,13 +29,13 @@ bool	Server_class::is_existing_receiver(std::string &receiver)
 int	Server_class::is_existing_client(std::string &receiver)
 {
 	std::map<int, Client>::iterator it;
-	std::string		username;
+	std::string		nickname;
 
 	it = this->clients.begin();
 	while (it != this->clients.end())
 	{
-		username = it->second.get_nickname();
-		if (username == receiver)
+		nickname = it->second.get_nickname();
+		if (nickname == receiver)
 			return (it->second.get_fd());
 		it++;
 	}

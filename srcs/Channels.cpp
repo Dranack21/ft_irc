@@ -50,26 +50,6 @@ void	Server_class::Join_channel(int client_fd, std::string channel_name, std::ve
 	}
 }
 
-
-// void	Server_class::send_message_to_channel(int client_fd, const std::string &channel_name, const std::string &buffer)
-// {
-// 	std::vector<int>::iterator it2;
-// 	std::map<std::string, Channel>::iterator it;
-
-// 	if (this->channels[channel_name].created == true)
-// 	{
-// 		it = this->channels.begin();
-// 		it2 = it->second.Clients.begin();
-// 		while(it2 != it->second.Clients.end())
-// 		{
-// 			send(*it2, buffer.c_str(), buffer.size(), 0);
-// 			this->server_history(client_fd + " sent a PRIVMSG to " + *it2 + '\r' + '\n');
-// 			it2++;
-// 		}
-// 	}
-// }
-
-
 void	Server_class::send_message_to_channel(int client_fd, const std::string &channel_name, const std::string &buffer)
 {
 	std::vector<int>::iterator it2;
