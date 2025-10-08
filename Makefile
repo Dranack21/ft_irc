@@ -1,6 +1,6 @@
 ### COMPIL #####################################################################
 
-CC      = c++
+CC      = clang++
 CFLAGS  = -Wall -Wextra -Werror -std=c++98 -Iincludes
 NAME    = ircserv
 

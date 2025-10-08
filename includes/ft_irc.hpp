@@ -16,6 +16,7 @@
 #include <cerrno>
 #include <signal.h>
 #include <csignal>
+#include <cstdio>
 
 
 #define RPL_WELCOME 001
@@ -52,14 +53,16 @@
 
 struct in_addr2
 {
-	in_addr_t	s_addr = INADDR_ANY;
+	in_addr_t	s_addr;
 };
 struct s_a
 {
-	sa_family_t 		sin_family = AF_INET;	///protocol IPV4
+	sa_family_t 		sin_family;	///protocol IPV4
 	in_port_t			sin_port;				//16bytes int that represents port number we need to convert using htons I think
-    struct	in_addr2	sin_adrr;				//32 BIT IPV4 ADRESS
+    struct	in_addr2	sin_addr;				//32 BIT IPV4 ADRESS
+	char             sin_zero[8];
 };
+
 
 
 struct Channel
@@ -113,7 +116,7 @@ class Client
 class Server_class
 {
 	private:
-		struct s_a				socket_addr;
+		struct sockaddr_in socket_addr;
 		std::vector<pollfd>		pollfd_vector;
 		std::map<std::string, Channel> channels;
 		std::map<int, Client>	clients;

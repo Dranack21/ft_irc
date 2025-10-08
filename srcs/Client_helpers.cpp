@@ -26,6 +26,8 @@ void	Server_class::disconnect_client(int client_fd)
 		client_it++;
 	}
 	close(client_fd);
-	std::string str = "Disconnected client " + client_fd ;
+	std::ostringstream oss;
+	oss << "Disconnected client " << client_fd;
+	std::string str = oss.str();
 	this->server_history(str);
 }

@@ -1,6 +1,6 @@
 #include "ft_irc.hpp"
 
-Server_class::Server_class() : server_name("ft_irc.42.fr"), server_version("1.0"), creation_date("") //constructor initializing server name and version not sure about version and name 
+Server_class::Server_class() : server_name("ft_irc.42.fr"), server_version("1.0"), creation_date(""), running(true) //constructor initializing server name and version not sure about version and name 
 {
 	instance = this;
 	
@@ -21,24 +21,36 @@ Server_class::~Server_class()
         shutdown_server();
 }
 
-void	Server_class::Setup_server(int port, std::string password)
+void Server_class::Setup_server(int port, std::string password)
 {
-
 	int opt = 1;
     
-	this->Server_socket = socket(AF_INET ,SOCK_STREAM, 0);
-	setsockopt(this->Server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)); //SO_REUSEADDR allows you to rebind to the same port immediately after closing
+	this->Server_socket = socket(AF_INET, SOCK_STREAM, 0);
+	if (this->Server_socket < 0)
+		throw std::runtime_error("Socket creation failed");
+	setsockopt(this->Server_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
 
+	// Zero out the struct first!
+	memset(&this->socket_addr, 0, sizeof(this->socket_addr));
+	memset(&this->socket_addr.sin_port, 0, sizeof(this->socket_addr.sin_port));
+
+	this->socket_addr.sin_family = AF_INET;
+	this->socket_addr.sin_addr.s_addr = INADDR_ANY;
 	this->server_password = password;
 	this->socket_addr.sin_port = htons(port);
 
 	if (fcntl(this->Server_socket, F_SETFL, O_NONBLOCK) < 0)
 		throw std::runtime_error("Fcntl flag set failed");
-	if (bind(this->Server_socket, (struct sockaddr *)&socket_addr, sizeof(sockaddr)) < 0)
-		throw std::runtime_error ("bind failed");
+	if (bind(this->Server_socket, (struct sockaddr *)&socket_addr, sizeof(socket_addr)))
+	{
+		perror("bind");
+		throw std::runtime_error("bind failed");
+	}
 	if (listen(this->Server_socket, 50) < 0)
-		throw std::runtime_error ("Listen failed");
+		throw std::runtime_error("Listen failed");
 }
+
+
 
 // This function accepts clients connections and monitors file descriptors with polling function
 // pollfd struct: 
@@ -63,7 +75,9 @@ void	Server_class::Accept_and_poll()
 		if (poll(this->pollfd_vector.data(), this->pollfd_vector.size(), -1) < 0)
         {
             if (errno == EINTR) continue;
-            break;
+			{
+            	break;
+			}
         }
 		if (this->pollfd_vector[0].revents & POLLIN)
 		{
