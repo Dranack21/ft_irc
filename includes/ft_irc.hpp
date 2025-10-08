@@ -23,6 +23,12 @@
 #define RPL_CREATED 003
 #define RPL_MYINFO 004
 
+
+#define RLP_WHOISUSER 311
+#define RPL_WHOISSERVER 312
+#define RPL_WHOISOPERATOR 313
+#define RPL_WHOWASUSER 314
+#define RPL_WHOISCHANNELS 320
 #define RPL_NOTOPIC 331
 #define RPL_TOPIC 332
 #define RPL_NAMREPLY 353
@@ -145,7 +151,8 @@ class Server_class
 		void	handle_priv_command(int client_fd, std::istringstream& iss);
 		void	handle_mode_command(int client_fd, std::istringstream& iss);
 		void	handle_ping_command(int client_fd, std::istringstream& iss);
-		
+		void	handle_who_command (int client_fd, std::istringstream& iss);
+	
 		void	check_registration_complete(int client_fd);
 		bool	is_nickname_in_use(const std::string& nickname);
 		bool	is_valid_nickname(const std::string& nickname);

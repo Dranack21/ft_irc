@@ -14,12 +14,7 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 	else if (command == "MODE")
 		handle_mode_command(client_fd, iss);
 	else if (command == "WHO")
-    {
-        std::string response = ":" + server_name + " 315 " + 
-                             this->clients[client_fd].get_nickname() + 
-                             " * :End of WHO list\r\n";
-        send(client_fd, response.c_str(), response.length(), 0);
-    }
+		handle_who_command(client_fd, iss);
     else if (command == "PING")
     {
         std::string token;
@@ -258,3 +253,29 @@ void	Server_class::handle_nick_command(int client_fd, std::istringstream& iss)
 	std::cout << "Client " << client_fd << " set nickname to: " << nickname << std::endl;
 	check_registration_complete(client_fd);
 }
+
+void	Server_class::handle_who_command(int client_fd, std::istringstream &iss)
+{
+	std::string command;
+
+	if (!(iss >> command))
+	{
+	
+	}
+	else if (command[0] == '#')
+	{
+
+	}
+	std::string response = ":" + server_name + " 315 " + this->clients[client_fd].get_nickname() + " * :End of WHO list\r\n";
+	send(client_fd, response.c_str(), response.length(), 0);
+}
+
+//
+//if command == "WHO":
+//    if no argument:
+//        -> optional: list all visible users
+//    else if argument starts with '#':
+//        -> find the channel
+//        -> send 352 for each user
+//        -> send 315 (End)
+		//
