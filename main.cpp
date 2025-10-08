@@ -10,6 +10,11 @@ int main(int argc, char *argv[])
 		std::cout << "Need 2 args" << std::endl;
 		return (1);
 	}
+	if(atoi(argv[1]) < 1024)
+	{
+		std::cout << "Please use a port above 1024" << std::endl;
+		return (1);
+	}
 	try{
 		Server.Setup_server(atoi(argv[1]), argv[2]);
 		Server.Accept_and_poll();

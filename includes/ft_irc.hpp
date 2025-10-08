@@ -154,7 +154,8 @@ class Server_class
 		void	handle_priv_command(int client_fd, std::istringstream& iss);
 		void	handle_mode_command(int client_fd, std::istringstream& iss);
 		void	handle_ping_command(int client_fd, std::istringstream& iss);
-		void	handle_who_command (int client_fd, std::istringstream& iss);
+		void	handle_whois_command (int client_fd, std::istringstream& iss);
+		void	end_of_whois(int client_fd);
 	
 		void	check_registration_complete(int client_fd);
 		bool	is_nickname_in_use(const std::string& nickname);

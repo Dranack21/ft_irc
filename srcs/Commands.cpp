@@ -13,8 +13,8 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 		handle_priv_command(client_fd, iss);
 	else if (command == "MODE")
 		handle_mode_command(client_fd, iss);
-	else if (command == "WHO")
-		handle_who_command(client_fd, iss);
+	else if (command == "WHOIS")
+		handle_whois_command(client_fd, iss);
     else if (command == "PING")
     {
         std::string token;
@@ -254,22 +254,42 @@ void	Server_class::handle_nick_command(int client_fd, std::istringstream& iss)
 	check_registration_complete(client_fd);
 }
 
-void	Server_class::handle_who_command(int client_fd, std::istringstream &iss)
+void	Server_class::handle_whois_command(int client_fd, std::istringstream &iss)
 {
-	std::string command;
+	std::string nick;
+	std::string requester_nick;
+	std::string buffer;
+	std::map<int, Client>::iterator it;
 
-	if (!(iss >> command))
-	{
-	
-	}
-	else if (command[0] == '#')
-	{
+	it = this->clients.begin();
+	requester_nick = this->clients[client_fd].get_nickname();
 
+	if (!(iss >> nick))
+		send_error_mess(client_fd, 461, requester_nick + " WHOIS :Not enough parameters\r\n");
+	else
+	{
+		while(it != this->clients.end())
+		{
+			//WHO IS FORMAT "SERVER ERROR_CODE REQUESTER_NICK NICK USER LOCALHOST : REALNAME"
+			if (it->second.get_nickname() == nick)
+			{	
+				buffer = ":ft_irc.42.fr 311 " + requester_nick + " " + it->second.get_nickname() + " " + it->second.get_username() + " localhost * :" + it->second.get_realname() + "\r\n";
+				send(client_fd, buffer.c_str(), buffer.length(), 0);
+				buffer = nick + " :End of /WHOIS list\r\n";
+				send_error_mess(client_fd, 318, buffer.c_str());
+				break;
+			}
+			it++;
+		}
+		if (it == this->clients.end())
+		{
+			buffer = requester_nick + " " + nick + " :No such nick/channel\r\n";
+			send_error_mess(client_fd, 401, buffer);
+		}
 	}
-	std::string response = ":" + server_name + " 315 " + this->clients[client_fd].get_nickname() + " * :End of WHO list\r\n";
-	send(client_fd, response.c_str(), response.length(), 0);
 }
 
+//<nick> <user> <host> * :<real_name>
 //
 //if command == "WHO":
 //    if no argument:
