@@ -15,6 +15,8 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 		handle_mode_command(client_fd, iss);
 	else if (command == "WHOIS")
 		handle_whois_command(client_fd, iss);
+	else if (command == "TOPIC")
+		handle_topic_command(client_fd, iss);
     else if (command == "PING")
     {
         std::string token;
@@ -286,6 +288,37 @@ void	Server_class::handle_whois_command(int client_fd, std::istringstream &iss)
 			buffer = requester_nick + " " + nick + " :No such nick/channel\r\n";
 			send_error_mess(client_fd, 401, buffer);
 		}
+	}
+}
+
+void	Server_class::handle_topic_command(int client_fd, std::istringstream &iss)
+{
+	std::string arg;
+	std::string	channel_name;
+	std::string topic;
+
+	if(!(iss >> arg))
+	{
+		std::cout << "IDKKK" << std::endl;
+	}
+	else if (arg == "-delete")
+	{
+		if (!(iss >> channel_name))
+			send_error_mess(client_fd, 461, "TOPIC :-delete must be followed up with a channel");
+		else if (channel_name[0] != '#' || is_existing_channel(channel_name) || this->channels[channel_name].is_client_in_channel(client_fd))
+			send_error_mess(client_fd, 403, channel_name + " :No such channel");
+		else
+			this->channels[channel_name].topic.clear();
+	}
+	else if (is_existing_channel(arg))
+	{
+		channel_name = arg;
+		while (iss >> arg)
+			topic += arg;
+		this->channels[channel_name].topic = topic;
+		std::string response = ":" + this->clients[client_fd].get_nickname() + "!" + this->clients[client_fd].get_username() + "@" + server_name + " TOPIC " + channel_name + " " + topic;
+		std::cout << response << std::endl;
+		send(client_fd, response.c_str(), response.length(), 0);
 	}
 }
 

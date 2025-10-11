@@ -75,7 +75,7 @@ struct Channel
 	bool	has_password;
 	std::vector<int> Clients;	//vecteur d'int contenant les FD des clients 
 	std::vector<int> Operators; //vecteur d'int contenant les FD des operateurs
-	bool						is_client_in_channel(int client_fd, std::string& nickname);
+	bool						is_client_in_channel(int client_fd);
 };
 
 class Client    
@@ -154,7 +154,8 @@ class Server_class
 		void	handle_priv_command(int client_fd, std::istringstream& iss);
 		void	handle_mode_command(int client_fd, std::istringstream& iss);
 		void	handle_ping_command(int client_fd, std::istringstream& iss);
-		void	handle_whois_command (int client_fd, std::istringstream& iss);
+		void	handle_whois_command(int client_fd, std::istringstream& iss);
+		void	handle_topic_command(int client_fd, std::istringstream& iss);
 		void	end_of_whois(int client_fd);
 	
 		void	check_registration_complete(int client_fd);

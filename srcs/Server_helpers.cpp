@@ -53,6 +53,7 @@ void Server_class::send_error_mess(int client_fd, int numeric, const std::string
 	oss << " :" << message << "\r\n";
 	
 	std::string response = oss.str();
+	std::cout << response << std::endl;
 	send(client_fd, response.c_str(), response.length(), 0);
 }
 

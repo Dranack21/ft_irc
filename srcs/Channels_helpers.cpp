@@ -56,3 +56,18 @@ bool	check_if_valid_channel_name(std::string name)
 	return true;
 }
 
+bool	Channel::is_client_in_channel(int client_fd)
+{
+	std::vector<int>::iterator it;
+
+    if (this->created == false)
+        return (false);
+    it = this->Clients.begin();
+    while (it != this->Clients.end())
+    {
+        if (*it == client_fd)
+            return (true);
+        it++;
+    }
+    return (false);
+}
