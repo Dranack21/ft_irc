@@ -47,3 +47,37 @@ bool Server_class::is_existing_channel(std::string &receiver)
     return (it != this->channels.end() && it->second.created);
 }
 
+bool Server_class::is_channel_operator(int client_fd, const std::string& channel)
+{
+    std::vector<int>::iterator it;
+    for (it = this->channels[channel].Operators.begin(); 
+         it != this->channels[channel].Operators.end(); ++it)
+    {
+        if (*it == client_fd)
+            return true;
+    }
+    return false;
+}
+
+std::string Server_class::build_channel_mode_string(const std::string& channel)
+{
+    std::string modes = "+";
+    std::string params = "";
+    
+    // Add 't' if topic is restricted (default)
+    if (this->channels[channel].topic_restricted)
+        modes += "t";
+    
+    // Add 'k' if channel has password
+    if (this->channels[channel].has_password)
+    {
+        modes += "k";
+        params += " " + this->channels[channel].password;
+    }
+    
+    // If no modes are set, just return "+"
+    if (modes == "+")
+        return "+";
+    
+    return modes + params;
+}

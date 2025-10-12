@@ -4,6 +4,8 @@ Channel::Channel()
 {
 	topic = "";
 	created = false;
+	has_password = false;
+	topic_restricted = true;
 }
 
 void	Server_class::Join_channel(int client_fd, std::string channel_name, std::vector<std::string> &keys)
@@ -62,10 +64,41 @@ void	Server_class::send_message_to_channel(int client_fd, const std::string &cha
 		while(it2 != this->channels[channel_name].Clients.end())
 		{
 			if (*it2 != client_fd)
+			{
 				send(*it2, buffer.c_str(), buffer.size(), 0);
+				if (buffer.find(" MODE ") != std::string::npos || buffer.find(" JOIN ") != std::string::npos)
+				{
+					send_names_list(*it2, channel_name);
+				}
+			}
 			it2++;
 		}
 	}
+}
+
+void Server_class::send_names_list(int client_fd, const std::string& channel_name)
+{
+	std::string nickname = this->clients[client_fd].get_nickname();
+	std::string names = "";
+	std::vector<int>::iterator it;
+	
+	for (it = this->channels[channel_name].Clients.begin(); 
+	     it != this->channels[channel_name].Clients.end(); ++it)
+	{
+		if (it != this->channels[channel_name].Clients.begin())
+			names += " ";
+		if (is_channel_operator(*it, channel_name))
+			names += "@";
+		names += this->clients[*it].get_nickname();
+	}
+	
+	std::string namreply = ":ft_irc.42.fr 353 " + nickname + " = " + 
+	                       channel_name + " :" + names + "\r\n";
+	send(client_fd, namreply.c_str(), namreply.length(), 0);
+	
+	std::string endnames = ":ft_irc.42.fr 366 " + nickname + " " + 
+	                       channel_name + " :End of /NAMES list\r\n";
+	send(client_fd, endnames.c_str(), endnames.length(), 0);
 }
 
 //this function is only to be called when said channel is SURE to be created

@@ -160,6 +160,7 @@ void Server_class::shutdown_server() //function to shutdown the server to not ge
         std::cout << "Closed connection to client fd " << it->first << std::endl;
     }
     clients.clear();
+	channels.clear();
     pollfd_vector.clear();
     if (Server_socket >= 0)
     {

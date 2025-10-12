@@ -5,6 +5,8 @@ void Server_class::Welcome_msg_channel(int client_fd, std::string& channel_name)
     std::string nickname = this->clients[client_fd].get_nickname();
     std::string username = this->clients[client_fd].get_username();
     
+    std::string join_broadcast = ":" + nickname + "!~" + username + "@localhost JOIN :" + channel_name + "\r\n";
+    send_message_to_channel(client_fd, channel_name, join_broadcast);
     // 1. Send JOIN confirmation FIRST (critical for IRSSI)
     std::string join_msg = ":" + nickname + "!~" + username + "@localhost JOIN :" + channel_name + "\r\n";
     send(client_fd, join_msg.c_str(), join_msg.length(), 0);
@@ -28,6 +30,8 @@ void Server_class::Welcome_msg_channel(int client_fd, std::string& channel_name)
     {
         if (it != this->channels[channel_name].Clients.begin())
             names += " ";
+        if (is_channel_operator(*it, channel_name))
+            names += "@";
         names += this->clients[*it].get_nickname();
     }
     std::string namreply = ":ft_irc.42.fr 353 " + nickname + " = " + channel_name + " :" + names + "\r\n";
@@ -70,4 +74,36 @@ bool	Channel::is_client_in_channel(int client_fd)
         it++;
     }
     return (false);
+}
+void Server_class::broadcast_names_to_channel(const std::string& channel_name)
+{
+    std::vector<int>::iterator it;
+    for (it = this->channels[channel_name].Clients.begin(); 
+         it != this->channels[channel_name].Clients.end(); ++it)
+    {
+        std::string nickname = this->clients[*it].get_nickname();
+        std::string names = "";
+        
+        // Build NAMES list with @ for operators
+        std::vector<int>::iterator name_it;
+        for (name_it = this->channels[channel_name].Clients.begin(); 
+             name_it != this->channels[channel_name].Clients.end(); ++name_it)
+        {
+            if (name_it != this->channels[channel_name].Clients.begin())
+                names += " ";
+            
+            if (is_channel_operator(*name_it, channel_name))
+                names += "@";
+            
+            names += this->clients[*name_it].get_nickname();
+        }
+        
+        std::string namreply = ":ft_irc.42.fr 353 " + nickname + " = " + 
+                              channel_name + " :" + names + "\r\n";
+        send(*it, namreply.c_str(), namreply.length(), 0);
+        
+        std::string endnames = ":ft_irc.42.fr 366 " + nickname + " " + 
+                              channel_name + " :End of /NAMES list\r\n";
+        send(*it, endnames.c_str(), endnames.length(), 0);
+    }
 }

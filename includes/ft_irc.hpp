@@ -29,14 +29,17 @@
 #define RPL_WHOISSERVER 312
 #define RPL_WHOISOPERATOR 313
 #define RPL_WHOWASUSER 314
+#define RPL_ENDOFWHO 315
 #define RPL_WHOISCHANNELS 320
 #define RPL_NOTOPIC 331
 #define RPL_TOPIC 332
+#define RPL_WHOREPLY 352
 #define RPL_NAMREPLY 353
 #define RPL_ENDOFNAMES 366
 
 #define ERR_UNKNOWNERROR 400
 #define ERR_NOSUCHNICK 401
+
 #define ERR_NOSUCHCHANNEL 403
 #define ERR_CANNOTSENDTOCHAN 404
 #define ERR_NORECIPIENT 411
@@ -46,10 +49,18 @@
 #define ERR_NONICKNAMEGIVEN 431
 #define ERR_ERRONEUSNICKNAME 432
 #define ERR_NICKNAMEINUSE 433
+#define ERR_USERNOTINCHANNEL    441
+#define ERR_NOTONCHANNEL        442
+#define ERR_USERONCHANNEL       443
 #define ERR_NEEDMOREPARAMS 461
 #define ERR_ALREADYREGISTRED 462
 #define ERR_PASSWDMISMATCH 464
+#define ERR_CHANNELISFULL       471
+#define ERR_UNKNOWNMODE         472
+#define ERR_INVITEONLYCHAN      473
 #define ERR_BADCHANNELKEY 475
+#define ERR_CHANOPRIVSNEEDED    482
+
 
 struct in_addr2
 {
@@ -73,6 +84,7 @@ struct Channel
 	std::string topic;
 	std::string password;
 	bool	has_password;
+	bool	topic_restricted; //if true only ops can change topic
 	std::vector<int> Clients;	//vecteur d'int contenant les FD des clients 
 	std::vector<int> Operators; //vecteur d'int contenant les FD des operateurs
 	bool						is_client_in_channel(int client_fd);
@@ -156,6 +168,7 @@ class Server_class
 		void	handle_ping_command(int client_fd, std::istringstream& iss);
 		void	handle_whois_command(int client_fd, std::istringstream& iss);
 		void	handle_topic_command(int client_fd, std::istringstream& iss);
+		void	handle_who_command(int client_fd, std::istringstream& iss);
 		void	end_of_whois(int client_fd);
 	
 		void	check_registration_complete(int client_fd);
@@ -171,6 +184,12 @@ class Server_class
 		void						Welcome_msg_channel(int client_fd, std::string& channel_name);
 		std::vector<std::string>	Split_by_comma(std::string &channels);
 		int							get_fd_from_nick(std::string nick);
+		bool						is_channel_operator(int client_fd, const std::string& channel);
+		std::string					build_channel_mode_string(const std::string& channel);
+		void						apply_channel_modes(int client_fd, const std::string& channel, const std::string& mode_string, std::istringstream& iss);
+		void						send_names_list(int client_fd, const std::string& channel_name);
+		void						broadcast_names_to_channel(const std::string& channel_name)
+		;
 
 		////PRIVMSG
 		bool	is_existing_receiver(std::string &receiver);
