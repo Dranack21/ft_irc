@@ -313,10 +313,18 @@ void	Server_class::handle_topic_command(int client_fd, std::istringstream &iss)
 	else if (is_existing_channel(arg))
 	{
 		channel_name = arg;
+		if (iss >> arg)
+		{
+			if (arg[0] == ':')
+				topic += arg.substr(1, arg.length() -1);
+			else
+				topic += arg;
+		}
 		while (iss >> arg)
 			topic += arg;
 		this->channels[channel_name].topic = topic;
-		std::string response = ":" + this->clients[client_fd].get_nickname() + "!" + this->clients[client_fd].get_username() + "@" + server_name + " TOPIC " + channel_name + " " + topic;
+		std::cout << "TOPIC :" << topic << std::endl;
+		std::string response = ":" + this->clients[client_fd].get_nickname() + "!" + this->clients[client_fd].get_username() + "@" + server_name + " TOPIC " + channel_name + " :" + topic + "\r\n";
 		std::cout << response << std::endl;
 		send(client_fd, response.c_str(), response.length(), 0);
 	}
