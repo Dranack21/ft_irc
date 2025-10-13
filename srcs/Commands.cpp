@@ -11,6 +11,8 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 		handle_join_command(client_fd, iss);
 	else if (command == "PRIVMSG")
 		handle_priv_command(client_fd, iss);
+	else if (command == "QUIT")
+		handle_quit_command(client_fd, iss);
 	else if (command == "MODE")
 		handle_mode_command(client_fd, iss);
 	else if (command == "WHOIS")
@@ -51,15 +53,12 @@ void Server_class::handle_mode_command(int client_fd, std::istringstream& iss) /
         
         if (!mode_str.empty())
         {
-            std::string response = ":" + this->clients[client_fd].get_nickname() + 
-                                 " MODE " + target + " " + mode_str + "\r\n";
+            std::string response = ":" + this->clients[client_fd].get_nickname() + " MODE " + target + " " + mode_str + "\r\n";
             send(client_fd, response.c_str(), response.length(), 0);
         }
         else
         {
-            std::string response = ":" + server_name + " 221 " + 
-                                 this->clients[client_fd].get_nickname() + 
-                                 " +\r\n";
+            std::string response = ":" + server_name + " 221 " + this->clients[client_fd].get_nickname() + " +\r\n";
             send(client_fd, response.c_str(), response.length(), 0);
         }
 		return;
@@ -94,6 +93,7 @@ void Server_class::handle_mode_command(int client_fd, std::istringstream& iss) /
     }
     apply_channel_modes(client_fd, channel, mode_string, iss);
 }
+
 
 //so handle only +o, -o, +k, -k, +t, -t for now
 
@@ -167,7 +167,6 @@ void Server_class::apply_channel_modes(int client_fd, const std::string& channel
                 applied_params += " " + target_nick;
                 break;
             }
-                
             case 'k': // Channel password
             {
                 if (adding)
@@ -190,32 +189,23 @@ void Server_class::apply_channel_modes(int client_fd, const std::string& channel
                     applied_modes += 'k';
                 }
                 break;
-            }
-                
+            }    
             case 't': // Topic restriction
                 this->channels[channel].topic_restricted = adding;
                 applied_modes += 't';
                 break;
-                
             default:
-
                 send_error_mess(client_fd, ERR_UNKNOWNMODE, std::string("Unknown mode character: ") + mode);
                 continue;
         }
     }
-    
     // Broadcast mode change to all channel members if anything changed
     if (!applied_modes.empty() && applied_modes != "+" && applied_modes != "-")
     {
-        std::string mode_msg = ":" + get_client_prefix(this->clients[client_fd]) +
-                              " MODE " + channel + " " + applied_modes + applied_params + "\r\n";
-        
-        // Send to all channel members including the one who set it
+        std::string mode_msg = ":" + get_client_prefix(this->clients[client_fd]) +" MODE " + channel + " " + applied_modes + applied_params + "\r\n";
         send_message_to_channel(client_fd, channel, mode_msg);
         send(client_fd, mode_msg.c_str(), mode_msg.length(), 0);
-        
-        server_history("MODE " + channel + " " + applied_modes + applied_params + " by " + 
-                      this->clients[client_fd].get_nickname());
+        server_history("MODE " + channel + " " + applied_modes + applied_params + " by " + this->clients[client_fd].get_nickname());
     }
 }
 
@@ -452,33 +442,35 @@ void	Server_class::handle_topic_command(int client_fd, std::istringstream &iss)
 		std::cout << "IDKKK" << std::endl;
 	}
 	else if (arg == "-delete")
-	{
-		if (!(iss >> channel_name))
-			send_error_mess(client_fd, 461, "TOPIC :-delete must be followed up with a channel");
-		else if (channel_name[0] != '#' || is_existing_channel(channel_name) || this->channels[channel_name].is_client_in_channel(client_fd))
-			send_error_mess(client_fd, 403, channel_name + " :No such channel");
-		else
-			this->channels[channel_name].topic.clear();
-	}
+		handle_topic_delete(client_fd, iss);
 	else if (is_existing_channel(arg))
-	{
-		channel_name = arg;
-		if (iss >> arg)
-		{
-			if (arg[0] == ':')
-				topic += arg.substr(1, arg.length() -1);
-			else
-				topic += arg;
-		}
-		while (iss >> arg)
-			topic += arg;
-		this->channels[channel_name].topic = topic;
-		std::cout << "TOPIC :" << topic << std::endl;
-		std::string response = ":" + this->clients[client_fd].get_nickname() + "!" + this->clients[client_fd].get_username() + "@" + server_name + " TOPIC " + channel_name + " :" + topic + "\r\n";
-		std::cout << response << std::endl;
-		send(client_fd, response.c_str(), response.length(), 0);
-	}
+		handle_topic_channel(client_fd, iss, arg);
 }
+
+void	Server_class::handle_quit_command(int client_fd , std::istringstream &iss)
+{
+	std::string message;
+
+	std::vector<int>::iterator client_it;
+	std::vector<int>::iterator operator_it;
+	std::map<std::string, Channel>::iterator channel_it;
+
+	channel_it = this->channels.begin();
+	while (channel_it != channels.end())
+	{
+		client_it = std::find(channel_it->second.Clients.begin(), channel_it->second.Clients.end(), client_fd);
+		if (client_it != channel_it->second.Clients.end())
+			channel_it->second.Clients.erase(client_it);
+		operator_it = std::find(channel_it->second.Operators.begin(), channel_it->second.Operators.end(), client_fd);
+		if (operator_it != channel_it->second.Operators.end())
+			channel_it->second.Operators.erase(operator_it);
+		channel_it++;
+	}
+	this->clients.erase(client_fd);
+	if (iss >> message)
+		server_history(message);
+}
+
 
 // void Server_class::handle_who_command(int client_fd, std::istringstream& iss)
 // {

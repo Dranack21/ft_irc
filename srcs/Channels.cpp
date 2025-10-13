@@ -28,7 +28,7 @@ void	Server_class::Join_channel(int client_fd, std::string channel_name, std::ve
 		}
 		Welcome_msg_channel(client_fd, channel_name);
 	}
-	else ///channel alredy e
+	else ///channel alredy exist
 	{
 		if (!keys.empty() && this->channels[channel_name].has_password == true)
 		{
@@ -82,20 +82,19 @@ void Server_class::send_names_list(int client_fd, const std::string& channel_nam
 	std::string names = "";
 	std::vector<int>::iterator it;
 	
-	for (it = this->channels[channel_name].Clients.begin(); 
-	     it != this->channels[channel_name].Clients.end(); ++it)
+	it = this->channels[channel_name].Clients.begin();
+	while(it != this->channels[channel_name].Clients.end())
 	{
 		if (it != this->channels[channel_name].Clients.begin())
 			names += " ";
 		if (is_channel_operator(*it, channel_name))
 			names += "@";
 		names += this->clients[*it].get_nickname();
+		it++;
 	}
-	
 	std::string namreply = ":ft_irc.42.fr 353 " + nickname + " = " + 
 	                       channel_name + " :" + names + "\r\n";
 	send(client_fd, namreply.c_str(), namreply.length(), 0);
-	
 	std::string endnames = ":ft_irc.42.fr 366 " + nickname + " " + 
 	                       channel_name + " :End of /NAMES list\r\n";
 	send(client_fd, endnames.c_str(), endnames.length(), 0);

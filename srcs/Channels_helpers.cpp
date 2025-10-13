@@ -75,6 +75,22 @@ bool	Channel::is_client_in_channel(int client_fd)
     }
     return (false);
 }
+
+bool Channel::is_client_operator(int client_fd)
+{
+    std::vector<int>::iterator it;
+
+    if (this->created == false)
+        return (false);
+    it = this->Operators.begin();
+    while (it != this->Operators.end())
+    {
+        if (*it == client_fd)
+            return (true);
+        it++;
+    }
+    return (false);
+}
 void Server_class::broadcast_names_to_channel(const std::string& channel_name)
 {
     std::vector<int>::iterator it;

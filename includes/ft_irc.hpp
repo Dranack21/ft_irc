@@ -17,6 +17,7 @@
 #include <signal.h>
 #include <csignal>
 #include <cstdio>
+#include <algorithm>
 
 
 #define RPL_WELCOME 001
@@ -88,6 +89,7 @@ struct Channel
 	std::vector<int> Clients;	//vecteur d'int contenant les FD des clients 
 	std::vector<int> Operators; //vecteur d'int contenant les FD des operateurs
 	bool						is_client_in_channel(int client_fd);
+	bool						is_client_operator(int client_fd);
 };
 
 class Client    
@@ -168,9 +170,11 @@ class Server_class
 		void	handle_ping_command(int client_fd, std::istringstream& iss);
 		void	handle_whois_command(int client_fd, std::istringstream& iss);
 		void	handle_topic_command(int client_fd, std::istringstream& iss);
+		void	handle_quit_command(int client_fd, std::istringstream& iss);
 		void	handle_who_command(int client_fd, std::istringstream& iss);
 		void	end_of_whois(int client_fd);
 	
+
 		void	check_registration_complete(int client_fd);
 		bool	is_nickname_in_use(const std::string& nickname);
 		bool	is_valid_nickname(const std::string& nickname);
@@ -193,9 +197,12 @@ class Server_class
 
 		////PRIVMSG
 		bool	is_existing_receiver(std::string &receiver);
-		bool	is_existing_channel(std::string &receciver);
+		bool	is_existing_channel(const std::string &receciver);
 		int		is_existing_client(std::string &receiver);
 
+		///TOPIC 
+		void	handle_topic_delete(int client_fd, std::istringstream& iss);
+		void	handle_topic_channel(int client_fd, std::istringstream& iss, const std::string &channel_name);
 		static void signal_handler(int signum);
 		void		disconnect_client(int client_fd);
 		void 		shutdown_server();
