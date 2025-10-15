@@ -41,6 +41,7 @@ int	Server_class::is_existing_client(std::string &receiver)
 	}
 	return (-1);
 }
+
 bool Server_class::is_existing_channel(const std::string &receiver)
 {
     std::map<std::string, Channel>::iterator it = this->channels.find(receiver);

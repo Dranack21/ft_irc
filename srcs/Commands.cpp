@@ -80,9 +80,7 @@ void Server_class::handle_mode_command(int client_fd, std::istringstream& iss) /
     if (mode_string.empty())
     {
         std::string mode_response = build_channel_mode_string(channel);
-        std::string response = ":" + server_name + " 324 " + 
-                             this->clients[client_fd].get_nickname() + 
-                             " " + channel + " " + mode_response + "\r\n";
+        std::string response = ":" + server_name + " 324 " + this->clients[client_fd].get_nickname() + " " + channel + " " + mode_response + "\r\n";
         send(client_fd, response.c_str(), response.length(), 0);
         return;
     }
@@ -121,92 +119,117 @@ void Server_class::apply_channel_modes(int client_fd, const std::string& channel
                 applied_modes += '-';
             continue;
         }
-        switch (mode)
+        std::string param = "";
+        if (process_single_mode(client_fd, channel, mode, adding, iss, param))
         {
-            case 'o': // Operator privilege
-            {
-                std::string target_nick;
-                if (!(iss >> target_nick))
-                {
-                    send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters for +/-o");
-                    continue;
-                }
-                
-                int target_fd = is_existing_client(target_nick);
-                if (target_fd == -1)
-                {
-                    send_error_mess(client_fd, ERR_NOSUCHNICK, "No such nick", target_nick);
-                    continue;
-                }
-                
-                if (!this->channels[channel].is_client_in_channel(target_fd))
-                {
-                    send_error_mess(client_fd, ERR_USERNOTINCHANNEL, target_nick + " is not on channel", channel);
-                    continue;
-                }
-                
-                if (adding)
-                {
-                    if (!is_channel_operator(target_fd, channel))
-                        this->channels[channel].Operators.push_back(target_fd);
-                }
-                else
-                {
-                    std::vector<int>::iterator it;
-                    for (it = this->channels[channel].Operators.begin(); 
-                         it != this->channels[channel].Operators.end(); ++it)
-                    {
-                        if (*it == target_fd)
-                        {
-                            this->channels[channel].Operators.erase(it);
-                            break;
-                        }
-                    }
-                }
-                applied_modes += 'o';
-                applied_params += " " + target_nick;
-                break;
-            }
-            case 'k': // Channel password
-            {
-                if (adding)
-                {
-                    std::string key;
-                    if (!(iss >> key))
-                    {
-                        send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters for +k");
-                        continue;
-                    }
-                    this->channels[channel].password = key;
-                    this->channels[channel].has_password = true;
-                    applied_modes += 'k';
-                    applied_params += " " + key;
-                }
-                else
-                {
-                    this->channels[channel].has_password = false;
-                    this->channels[channel].password.clear();
-                    applied_modes += 'k';
-                }
-                break;
-            }    
-            case 't': // Topic restriction
-                this->channels[channel].topic_restricted = adding;
-                applied_modes += 't';
-                break;
-            default:
-                send_error_mess(client_fd, ERR_UNKNOWNMODE, std::string("Unknown mode character: ") + mode);
-                continue;
+            applied_modes += mode;
+            if (!param.empty())
+                applied_params += " " + param;
         }
     }
-    // Broadcast mode change to all channel members if anything changed
-    if (!applied_modes.empty() && applied_modes != "+" && applied_modes != "-")
+    broadcast_mode_changes(client_fd, channel, applied_modes, applied_params);
+}
+
+bool Server_class::process_single_mode(int client_fd, const std::string& channel, char mode, bool adding, std::istringstream& iss, std::string& param)
+{
+    switch (mode)
     {
-        std::string mode_msg = ":" + get_client_prefix(this->clients[client_fd]) +" MODE " + channel + " " + applied_modes + applied_params + "\r\n";
-        send_message_to_channel(client_fd, channel, mode_msg);
-        send(client_fd, mode_msg.c_str(), mode_msg.length(), 0);
-        server_history("MODE " + channel + " " + applied_modes + applied_params + " by " + this->clients[client_fd].get_nickname());
+        case 'o':
+            return handle_operator_mode(client_fd, channel, adding, iss, param);
+        case 'k':
+            return handle_key_mode(client_fd, channel, adding, iss, param);
+        case 't':
+            return handle_topic_mode(client_fd, channel, adding);
+        default:
+            send_error_mess(client_fd, ERR_UNKNOWNMODE, std::string("Unknown mode character: ") + mode);
+            return false;
     }
+}
+
+bool Server_class::handle_operator_mode(int client_fd, const std::string& channel, bool adding, std::istringstream& iss, std::string& param)
+{
+    std::string target_nick;
+    if (!(iss >> target_nick))
+    {
+        send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters for +/-o");
+        return false;
+    }
+    int target_fd = is_existing_client(target_nick);
+    if (target_fd == -1)
+    {
+        send_error_mess(client_fd, ERR_NOSUCHNICK, "No such nick", target_nick);
+        return false;
+    }
+    if (!this->channels[channel].is_client_in_channel(target_fd))
+    {
+        send_error_mess(client_fd, ERR_USERNOTINCHANNEL, target_nick + " is not on channel", channel);
+        return false;
+    }
+    if (adding)
+    {
+        if (!is_channel_operator(target_fd, channel))
+			this->channels[channel].Operators.push_back(target_fd);
+    }
+    else
+    {
+        remove_operator_status(target_fd, channel);
+    }
+    param = target_nick;
+    return true;
+}
+
+bool Server_class::handle_key_mode(int client_fd, const std::string& channel, bool adding, std::istringstream& iss,std::string& param)
+{
+    if (adding)
+    {
+        std::string key;
+        if (!(iss >> key))
+        {
+            send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters for +k");
+            return false;
+        }
+        this->channels[channel].password = key;
+        this->channels[channel].has_password = true;
+        param = key;
+    }
+    else
+    {
+        this->channels[channel].has_password = false;
+        this->channels[channel].password.clear();
+    }
+    return true;
+}
+
+bool Server_class::handle_topic_mode(int client_fd, const std::string& channel, bool adding)
+{
+    (void)client_fd;
+    this->channels[channel].topic_restricted = adding;
+    return true;
+}
+
+void Server_class::remove_operator_status(int target_fd, const std::string& channel)
+{
+    std::vector<int>::iterator it;
+    for (it = this->channels[channel].Operators.begin(); 
+         it != this->channels[channel].Operators.end(); ++it)
+    {
+        if (*it == target_fd)
+        {
+            this->channels[channel].Operators.erase(it);
+            break;
+        }
+    }
+}
+
+void Server_class::broadcast_mode_changes(int client_fd, const std::string& channel, const std::string& applied_modes, const std::string& applied_params)
+{
+    if (applied_modes.empty() || applied_modes == "+" || applied_modes == "-")
+        return;
+    
+    std::string mode_msg = ":" + get_client_prefix(this->clients[client_fd]) + " MODE " + channel + " " + applied_modes + applied_params + "\r\n";
+    send_message_to_channel(client_fd, channel, mode_msg);
+    send(client_fd, mode_msg.c_str(), mode_msg.length(), 0);
+    server_history("MODE " + channel + " " + applied_modes + applied_params + " by " + this->clients[client_fd].get_nickname());
 }
 
 void	Server_class::handle_priv_command(int client_fd, std::istringstream& iss)
@@ -228,7 +251,8 @@ void	Server_class::handle_priv_command(int client_fd, std::istringstream& iss)
 	client_sender_nick = this->clients[client_fd].get_nickname();
 	receivers = Split_by_comma(receivers_str);
 	std::cout << "DEBUG PRIVMSG: receivers = [";
-	for (size_t i = 0; i < receivers.size(); i++) {
+	for (size_t i = 0; i < receivers.size(); i++) 
+	{
 		std::cout << "'" << receivers[i] << "'";
 		if (i < receivers.size() - 1) std::cout << ", ";
 	}
@@ -353,8 +377,7 @@ void	Server_class::handle_user_command(int client_fd, std::istringstream& iss)
 		send_error_mess(client_fd, ERR_ALREADYREGISTRED, "You may not reregister");
 		return;
 	}
-	
-	this->clients[client_fd].set_realname(realname); //forgor to set realname
+	this->clients[client_fd].set_realname(realname);
 	this->clients[client_fd].set_username(username);
 	std::cout << "Client " << client_fd << " set username to: " << username << std::endl;
 

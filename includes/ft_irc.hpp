@@ -192,12 +192,17 @@ class Server_class
 		std::string					build_channel_mode_string(const std::string& channel);
 		void						apply_channel_modes(int client_fd, const std::string& channel, const std::string& mode_string, std::istringstream& iss);
 		void						send_names_list(int client_fd, const std::string& channel_name);
-		void						broadcast_names_to_channel(const std::string& channel_name)
-		;
+		void						broadcast_names_to_channel(const std::string& channel_name);
+		bool 						process_single_mode(int client_fd, const std::string& channel, char mode, bool adding, std::istringstream& iss, std::string& param);
+		bool						handle_operator_mode(int client_fd, const std::string& channel, bool adding, std::istringstream& iss, std::string& param);
+		bool 						handle_key_mode(int client_fd, const std::string& channel, bool adding, std::istringstream& iss,std::string& param);
+		bool 						handle_topic_mode(int client_fd, const std::string& channel, bool adding);
+		void						remove_operator_status(int target_fd, const std::string& channel);
+		void						broadcast_mode_changes(int client_fd, const std::string& channel, const std::string& applied_modes, const std::string& applied_params);
 
 		////PRIVMSG
 		bool	is_existing_receiver(std::string &receiver);
-		bool	is_existing_channel(const std::string &receciver);
+		bool	is_existing_channel(const std::string &receiver);
 		int		is_existing_client(std::string &receiver);
 
 		///TOPIC 
