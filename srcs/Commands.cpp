@@ -404,19 +404,20 @@ void	Server_class::handle_nick_command(int client_fd, std::istringstream& iss)
 		send_error_mess(client_fd, ERR_ERRONEUSNICKNAME, "Erroneous nickname", nickname);
 		return;
 	}
-	if (this->clients[client_fd].has_nickname() && this->clients[client_fd].is_fully_authenticated()) // if already has a nick so is to change it 
-	{
-		std::string old_prefix = get_client_prefix(this->clients[client_fd]);
-		this->clients[client_fd].set_nickname(nickname);
-		std::string message = ":" + old_prefix + " NICK " + nickname + "\r\n";
-		send(client_fd, message.c_str(), message.length(), 0);
+	if (this->clients[client_fd].has_nickname() && this->clients[client_fd].is_fully_authenticated())
+    {
+        std::string old_prefix = get_client_prefix(this->clients[client_fd]);
+        this->clients[client_fd].set_nickname(nickname);
+        std::string message = ":" + old_prefix + " NICK " + nickname + "\r\n";
+        send(client_fd, message.c_str(), message.length(), 0);
+        std::cout << "Client " << client_fd << " changed nickname to: " << nickname << std::endl;
+    }
+    else
+    {
+        this->clients[client_fd].set_nickname(nickname);
+        std::cout << "Client " << client_fd << " set nickname to: " << nickname << std::endl;
+        check_registration_complete(client_fd);
 	}
-	else
-	{
-		this->clients[client_fd].set_nickname(nickname);
-	}
-	std::cout << "Client " << client_fd << " set nickname to: " << nickname << std::endl;
-	check_registration_complete(client_fd);
 }
 
 void	Server_class::handle_whois_command(int client_fd, std::istringstream &iss)
@@ -470,7 +471,7 @@ void	Server_class::handle_topic_command(int client_fd, std::istringstream &iss)
 		handle_topic_channel(client_fd, iss, arg);
 }
 
-void	Server_class::handle_quit_command(int client_fd , std::istringstream &iss)
+void Server_class::handle_quit_command(int client_fd, std::istringstream &iss)
 {
 	std::string message;
 
@@ -484,11 +485,15 @@ void	Server_class::handle_quit_command(int client_fd , std::istringstream &iss)
 		client_it = std::find(channel_it->second.Clients.begin(), channel_it->second.Clients.end(), client_fd);
 		if (client_it != channel_it->second.Clients.end())
 			channel_it->second.Clients.erase(client_it);
-		operator_it = std::find(channel_it->second.Operators.begin(), channel_it->second.Operators.end(), client_fd);
-		if (operator_it != channel_it->second.Operators.end())
-			channel_it->second.Operators.erase(operator_it);
+		
+		// operator_it = std::find(channel_it->second.Operators.begin(), channel_it->second.Operators.end(), client_fd);
+		// if (operator_it != channel_it->second.Operators.end())
+		//     channel_it->second.Operators.erase(operator_it);
+		
 		channel_it++;
 	}
+	transfer_operator_on_disconnect(client_fd);
+	
 	this->clients.erase(client_fd);
 	if (iss >> message)
 		server_history(message);

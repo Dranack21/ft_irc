@@ -199,6 +199,7 @@ class Server_class
 		bool 						handle_topic_mode(int client_fd, const std::string& channel, bool adding);
 		void						remove_operator_status(int target_fd, const std::string& channel);
 		void						broadcast_mode_changes(int client_fd, const std::string& channel, const std::string& applied_modes, const std::string& applied_params);
+		void						transfer_operator_on_disconnect(int disconnecting_fd);
 
 		////PRIVMSG
 		bool	is_existing_receiver(std::string &receiver);

@@ -101,7 +101,9 @@ void	Server_class::Accept_and_poll()
 void Server_class::process_client_activity()
 {
 	int		bytes_received;
+	int		disconnecting_fd;
 	char	buffer[512];
+	std::vector<int>::iterator client_it;
 
 	for (size_t i = 1; i < this->pollfd_vector.size(); i++)
         {
@@ -110,14 +112,23 @@ void Server_class::process_client_activity()
 				memset(buffer, 0, sizeof(buffer));
                 bytes_received = recv(this->pollfd_vector[i].fd, buffer, sizeof(buffer) - 1, 0);
 
-                if (bytes_received <= 0 || this->pollfd_vector[i].revents & (POLLHUP | POLLERR)) ////peut etre handle 0 et -1 differement
-                {
-                    std::cout << "Client disconnected: fd " << this->pollfd_vector[i].fd << std::endl;
-                    close(this->pollfd_vector[i].fd);
-                    this->clients.erase(this->pollfd_vector[i].fd); //// THIS IS A MAP SO WE ERASE USING THE KEY WHICH IS THE FD OF THE CLIENT
-                    this->pollfd_vector.erase(this->pollfd_vector.begin() + i);
-                    i--;
-                }
+                if (bytes_received <= 0 || this->pollfd_vector[i].revents & (POLLHUP | POLLERR))
+				{
+					std::cout << "Client disconnected: fd " << this->pollfd_vector[i].fd << std::endl;
+					disconnecting_fd = this->pollfd_vector[i].fd;
+					std::map<std::string, Channel>::iterator chan_it;
+					for (chan_it = this->channels.begin(); chan_it != this->channels.end(); ++chan_it)
+					{
+						client_it = std::find(chan_it->second.Clients.begin(), chan_it->second.Clients.end(), disconnecting_fd);
+						if (client_it != chan_it->second.Clients.end())
+							chan_it->second.Clients.erase(client_it);
+					}
+					transfer_operator_on_disconnect(disconnecting_fd);
+					close(this->pollfd_vector[i].fd);
+					this->clients.erase(this->pollfd_vector[i].fd);
+					this->pollfd_vector.erase(this->pollfd_vector.begin() + i);
+					i--;
+				}
                 else
                 {
                     this->handle_message(this->pollfd_vector[i].fd, std::string(buffer));

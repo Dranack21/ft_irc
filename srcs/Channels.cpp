@@ -68,7 +68,7 @@ void	Server_class::send_message_to_channel(int client_fd, const std::string &cha
 				send(*it2, buffer.c_str(), buffer.size(), 0);
 				if (buffer.find(" MODE ") != std::string::npos || buffer.find(" JOIN ") != std::string::npos)
 				{
-					send_names_list(*it2, channel_name);
+					send_names_list(*it2, channel_name); //to trash maybe
 				}
 			}
 			it2++;
