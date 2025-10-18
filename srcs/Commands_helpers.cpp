@@ -86,13 +86,14 @@ std::string Server_class::build_channel_mode_string(const std::string& channel)
 void	Server_class::handle_topic_delete(int client_fd, std::istringstream& iss)
 {
 	std::string channel_name;
-///GERER TOPIC DELETE SI TOPIC EXISTE PAS
 	if (!(iss >> channel_name))
 		send_error_mess(client_fd, 461, "TOPIC :-delete must be followed up with a channel");
 	else if (channel_name[0] != '#' || is_existing_channel(channel_name) == false|| this->channels[channel_name].is_client_in_channel(client_fd) == true)
 		send_error_mess(client_fd, 403, channel_name + " :No such channel");
 	else if (this->channels[channel_name].topic_restricted == true && this->channels[channel_name].is_client_operator(client_fd) == false)
 		return(send_error_mess(client_fd, ERR_CHANOPRIVSNEEDED, "You're not channel operator", channel_name));
+	else if (this->channels[channel_name].topic.empty())
+		return (send_error_mess(client_fd, 331, channel_name + " :No topic is set"));
 	this->channels[channel_name].topic.clear();
 }
 void	Server_class::handle_topic_channel(int client_fd, std::istringstream& iss, const std::string &channel_name)
@@ -123,4 +124,5 @@ void	Server_class::handle_topic_channel(int client_fd, std::istringstream& iss, 
 	std::string response = ":" + this->clients[client_fd].get_nickname() + "!" + this->clients[client_fd].get_username() + "@" + server_name + " TOPIC " + channel_name + " :" + topic + "\r\n";
 	std::cout << response << std::endl;
 	send(client_fd, response.c_str(), response.length(), 0);
+	send_message_to_channel(client_fd, channel_name, response);
 }
