@@ -151,7 +151,7 @@ void	Server_class::handle_message(int client_fd, const std::string& data)
 	{
 		complete_message = this->clients[client_fd].buffer.substr(0, pos);
 		this->clients[client_fd].buffer.erase(0, pos + 2);
-		read_message(client_fd, complete_message);
+		// read_message(client_fd, complete_message);
 		parse_for_register(client_fd, complete_message);
 	}
 }
@@ -163,6 +163,13 @@ void	Server_class::parse_for_register(int client_fd, const std::string& complete
     iss >> command;
 
 	command = to_upper(command);
+	if ((command != "PASS" && command != "JOIN" && command != "CAP") && this->clients[client_fd].pass == false)
+	{
+		std::cout << "command :" << command << std::endl;
+		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "PASS");
+		disconnect_client(client_fd);
+		return ;
+	}
 	if (command == "PASS")
 		handle_pass_command(client_fd, iss);
 	else if (command == "NICK")
@@ -176,7 +183,9 @@ void	Server_class::parse_for_register(int client_fd, const std::string& complete
 	else
 	{
 		if (!this->clients[client_fd].is_fully_authenticated())
+		{
 			send_error_mess(client_fd, ERR_NOTREGISTERED, "You have not registered");
+		}
 		else
 		{
 			try

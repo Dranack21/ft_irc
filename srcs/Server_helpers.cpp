@@ -2,15 +2,6 @@
 
 Server_class* Server_class::instance = NULL; //needed for signal handling
 
-// void	Server_class::send_error_message(int client_fd, std::string error_msg)
-// {
-// 	std::string response = "ERROR :" + error_msg + "\r\n";
-// 	send(client_fd, response.c_str(), response.length(), 0);
-// }
-
-
-
-
 void	Server_class::send_welcome_sequence(int client_fd)//sends the welcome messages after registration is complete (error in send_error_mess isn't a fitting name here)
 {
 	Client& client = this->clients[client_fd];
@@ -54,7 +45,10 @@ void Server_class::send_error_mess(int client_fd, int numeric, const std::string
 	
 	std::string response = oss.str();
 	std::cout << response << std::endl;
+	std::stringstream iss;
+	iss << client_fd;
 	send(client_fd, response.c_str(), response.length(), 0);
+	server_history("sent client " + iss.str() + " " + message);
 }
 
 
@@ -98,16 +92,16 @@ bool Server_class::is_valid_nickname(const std::string& nickname)
 }
 
 
-void	Server_class::read_message(int client_fd, const std::string& buffer)
-{
-    std::time_t now = std::time(0);
-    char* timestr = std::ctime(&now);
-	if (buffer.find("PING") == std::string::npos)
-	{
-		std::cout << "[" << std::string(timestr).substr(0, 24) << "] " 
-		<< "Client " << client_fd << " sent: " << buffer << std::endl;
-	}
-}
+// void	Server_class::read_message(int client_fd, const std::string& buffer)
+// {
+//     std::time_t now = std::time(0);
+//     char* timestr = std::ctime(&now);
+// 	if (buffer.find("PING") == std::string::npos)
+// 	{
+// 		std::cout << "[" << std::string(timestr).substr(0, 24) << "] " 
+// 		<< "Client " << client_fd << " sent: " << buffer << std::endl;
+// 	}
+// }
 
 void	Server_class::server_history(const std::string& buffer)
 {

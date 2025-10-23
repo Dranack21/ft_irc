@@ -109,6 +109,7 @@ class Client
 		bool has_user;
 
     public:
+		bool pass;
 		int			last_client;
 	    std::string buffer;
 		pollfd		pollfd_copy;
@@ -155,7 +156,7 @@ class Server_class
 		void	process_client_activity();
 
 		void	server_history(const std::string &buffer);
-		void	read_message(int client_fd, const std::string& buffer);
+		// void	read_message(int client_fd, const std::string& buffer);
 		void	parse_for_register(int client_fd, const std::string &complete_message);
 		void	parse_and_execute_command(int client_fd, const std::string &complete_message);
 		void	send_error_message(int client_fd, std::string error_msg);
