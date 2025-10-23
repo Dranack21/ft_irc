@@ -19,8 +19,8 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 		handle_whois_command(client_fd, iss);
 	else if (command == "TOPIC")
 		handle_topic_command(client_fd, iss);
-	// else if (command == "WHO")
-	// 	handle_who_command(client_fd, iss);
+	else if (command == "WHO")
+		handle_who_command(client_fd, iss);
     else if (command == "PING")
     {
         std::string token;
@@ -500,53 +500,54 @@ void Server_class::handle_quit_command(int client_fd, std::istringstream &iss)
 }
 
 
-// void Server_class::handle_who_command(int client_fd, std::istringstream& iss)
-// {
-//     std::string target;
-//     iss >> target;
-//     std::string requester_nick = this->clients[client_fd].get_nickname();
-    
-//     if (target.empty())
-//     {
-//         send_error_mess(client_fd, RPL_ENDOFWHO, "* :End of WHO list");
-//         return;
-//     }
-//     if (target[0] == '#')
-//     {
-//         if (!is_existing_channel(target))
-//         {
-//             send_error_mess(client_fd, ERR_NOSUCHCHANNEL, "No such channel", target);
-//             return;
-//         }
-//         std::vector<int>::iterator it;
-//         for (it = this->channels[target].Clients.begin(); 
-//              it != this->channels[target].Clients.end(); ++it)
-//         {
-//             Client& user = this->clients[*it];
-//             std::string flags = "H";
-//             if (is_channel_operator(*it, target))
-//                 flags += "@";
-//             std::string who_reply = ":" + server_name + " 352 " + requester_nick + " " +  target + " " + user.get_username() + " localhost " + server_name + " " + user.get_nickname() + " " + flags + " :0 " + user.get_realname() + "\r\n";
-//             send(client_fd, who_reply.c_str(), who_reply.length(), 0);
-//         }
-//         std::string end_msg = ":" + server_name + " 315 " + requester_nick + " " + target + " :End of WHO list\r\n";
-//         send(client_fd, end_msg.c_str(), end_msg.length(), 0);
-//     }
-//     else
-//     {
-//         int target_fd = is_existing_client(target);
-//         if (target_fd == -1)
-//         {
-//             send_error_mess(client_fd, ERR_NOSUCHNICK, "No such nick", target);
-//             return;
-//         }
-//         Client& user = this->clients[target_fd];
-//         std::string who_reply = ":" + server_name + " 352 " + requester_nick + " * " + user.get_username() + " localhost " + server_name + " " + user.get_nickname() + " H :0 " + user.get_realname() + "\r\n";
-//         send(client_fd, who_reply.c_str(), who_reply.length(), 0);
-//         std::string end_msg = ":" + server_name + " 315 " + requester_nick + " " + target + " :End of WHO list\r\n";
-//         send(client_fd, end_msg.c_str(), end_msg.length(), 0);
-//     }
-// }
+void Server_class::handle_who_command(int client_fd, std::istringstream& iss)
+{
+    std::string target;
+    iss >> target;
+    std::string requester_nick = this->clients[client_fd].get_nickname();
+    if (target.empty())
+    {
+        std::string end_msg = ":" + server_name + " 315 " + requester_nick + " * :End of WHO list\r\n";
+    	send(client_fd, end_msg.c_str(), end_msg.length(), 0);
+        return;
+    }
+    if (target[0] == '#')
+    {
+        if (!is_existing_channel(target))
+        {
+            send_error_mess(client_fd, ERR_NOSUCHCHANNEL, "No such channel", target);
+            return;
+        }
+        std::vector<int>::iterator it;
+        for (it = this->channels[target].Clients.begin(); 
+             it != this->channels[target].Clients.end(); ++it)
+        {
+            Client& user = this->clients[*it];
+            std::string flags = "H";
+            if (is_channel_operator(*it, target))
+                flags += "@";
+            std::string who_reply = ":" + server_name + " 352 " + requester_nick + " " +  target + " " + user.get_username() + " localhost " + server_name + " " + user.get_nickname() + " " + flags + " :" + user.get_realname() + "\r\n";
+			std::cout << "SENDING WHO REPLY: " << who_reply << std::endl;
+            send(client_fd, who_reply.c_str(), who_reply.length(), 0);
+        }
+        std::string end_msg = ":" + server_name + " 315 " + requester_nick + " " + target + " :End of WHO list\r\n";
+        send(client_fd, end_msg.c_str(), end_msg.length(), 0);
+    }
+    else
+    {
+        int target_fd = is_existing_client(target);
+        if (target_fd == -1)
+        {
+            send_error_mess(client_fd, ERR_NOSUCHNICK, "No such nick", target);
+            return;
+        }
+        Client& user = this->clients[target_fd];
+        std::string who_reply = ":" + server_name + " 352 " + requester_nick + " * " + user.get_username() + " localhost " + server_name + " " + user.get_nickname() + " H : " + user.get_realname() + "\r\n";
+        send(client_fd, who_reply.c_str(), who_reply.length(), 0);
+        std::string end_msg = ":" + server_name + " 315 " + requester_nick + " " + target + " :End of WHO list\r\n";
+        send(client_fd, end_msg.c_str(), end_msg.length(), 0);
+    }
+}
 
 //<nick> <user> <host> * :<real_name>
 //

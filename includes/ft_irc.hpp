@@ -53,6 +53,7 @@
 #define ERR_USERNOTINCHANNEL    441
 #define ERR_NOTONCHANNEL        442
 #define ERR_USERONCHANNEL       443
+#define ERR_NOTREGISTERED       451
 #define ERR_NEEDMOREPARAMS 461
 #define ERR_ALREADYREGISTRED 462
 #define ERR_PASSWDMISMATCH 464
@@ -62,6 +63,9 @@
 #define ERR_BADCHANNELKEY 475
 #define ERR_CHANOPRIVSNEEDED    482
 
+#define ERR_BANNEDFROMCHAN      474
+#define RPL_BANLIST             367
+#define RPL_ENDOFBANLIST        368
 
 struct in_addr2
 {
@@ -88,6 +92,7 @@ struct Channel
 	bool	topic_restricted; //if true only ops can change topic
 	std::vector<int> Clients;	//vecteur d'int contenant les FD des clients 
 	std::vector<int> Operators; //vecteur d'int contenant les FD des operateurs
+	std::vector<std::string> ban_list;
 	bool						is_client_in_channel(int client_fd);
 	bool						is_client_operator(int client_fd);
 };

@@ -76,6 +76,7 @@ void	Server_class::send_message_to_channel(int client_fd, const std::string &cha
 	}
 }
 
+
 void Server_class::send_names_list(int client_fd, const std::string& channel_name)
 {
 	std::string nickname = this->clients[client_fd].get_nickname();

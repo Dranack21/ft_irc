@@ -176,7 +176,7 @@ void	Server_class::parse_for_register(int client_fd, const std::string& complete
 	else
 	{
 		if (!this->clients[client_fd].is_fully_authenticated())
-			send_error_mess(client_fd, ERR_ALREADYREGISTRED, "You have not registered");
+			send_error_mess(client_fd, ERR_NOTREGISTERED, "You have not registered");
 		else
 		{
 			try

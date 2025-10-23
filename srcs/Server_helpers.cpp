@@ -204,55 +204,33 @@ void Server_class::handle_ping_command(int client_fd, std::istringstream& iss)
 
 void Server_class::transfer_operator_on_disconnect(int disconnecting_fd)
 {
-    std::cout << "DEBUG: transfer_operator_on_disconnect called for fd " << disconnecting_fd << std::endl;
     std::vector<int>::iterator op_it;
     std::map<std::string, Channel>::iterator chan_it;
     
     for (chan_it = this->channels.begin(); chan_it != this->channels.end(); ++chan_it)
     {
-        std::cout << "DEBUG: Checking channel " << chan_it->first << std::endl;
-		
         if (!is_channel_operator(disconnecting_fd, chan_it->first))
         {
-            std::cout << "DEBUG: fd " << disconnecting_fd << " is NOT an operator in " << chan_it->first << std::endl;
-
             continue;
         }
-		
-        std::cout << "DEBUG: fd " << disconnecting_fd << " IS an operator in " << chan_it->first << std::endl;
-
         for (op_it = chan_it->second.Operators.begin(); op_it != chan_it->second.Operators.end(); ++op_it)
         {
             if (*op_it == disconnecting_fd)
             {
                 chan_it->second.Operators.erase(op_it);
-
-                std::cout << "DEBUG: Removed fd " << disconnecting_fd << " from operators" << std::endl;
-
                 break;
             }
         }
-
-        std::cout << "DEBUG: Operators left: " << chan_it->second.Operators.size() << std::endl;
-        std::cout << "DEBUG: Clients left: " << chan_it->second.Clients.size() << std::endl;
-
         if (chan_it->second.Operators.empty() && !chan_it->second.Clients.empty())
         {
             int new_op_fd = chan_it->second.Clients[0];
-
-            std::cout << "DEBUG: Promoting fd " << new_op_fd << " to operator" << std::endl;
-
             chan_it->second.Operators.push_back(new_op_fd);
             std::string mode_msg = ":" + server_name + " MODE " + chan_it->first + " +o " + this->clients[new_op_fd].get_nickname() + "\r\n";
-
-            std::cout << "DEBUG: Sending mode message: " << mode_msg;
-
             std::vector<int>::iterator client_it;
             for (client_it = chan_it->second.Clients.begin(); client_it != chan_it->second.Clients.end(); ++client_it)
             {
                 send(*client_it, mode_msg.c_str(), mode_msg.length(), 0);
             }
-            std::cout << "Transferred operator status in " << chan_it->first << " to " << this->clients[new_op_fd].get_nickname() << std::endl;
         }
     }
 }
