@@ -65,18 +65,24 @@ std::string Server_class::build_channel_mode_string(const std::string& channel)
     std::string modes = "+";
     std::string params = "";
     
-    // Add 't' if topic is restricted (default)
     if (this->channels[channel].topic_restricted)
-        modes += "t";
-    
-    // Add 'k' if channel has password
+		modes += "t";
+	if (this->channels[channel].invite_only)
+		modes += "i";
+    if (this->channels[channel].user_limit > 0)
+    {
+		modes += "l";
+		std::ostringstream oss;
+        oss << this->channels[channel].user_limit;
+        params += " " + oss.str();
+    }
     if (this->channels[channel].has_password)
     {
         modes += "k";
         params += " " + this->channels[channel].password;
     }
     
-    // If no modes are set, just return "+"
+    // If no modes set return "+"
     if (modes == "+")
         return "+";
     

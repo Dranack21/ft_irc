@@ -90,11 +90,15 @@ struct Channel
 	std::string password;
 	bool	has_password;
 	bool	topic_restricted; //if true only ops can change topic
+	bool        invite_only;
+    int         user_limit;    
 	std::vector<int> Clients;	//vecteur d'int contenant les FD des clients 
 	std::vector<int> Operators; //vecteur d'int contenant les FD des operateurs
+	std::vector<int> invited_users;
 	std::vector<std::string> ban_list;
 	bool						is_client_in_channel(int client_fd);
 	bool						is_client_operator(int client_fd);
+	bool						is_client_invited(int client_fd);
 };
 
 class Client    
@@ -206,6 +210,10 @@ class Server_class
 		void						remove_operator_status(int target_fd, const std::string& channel);
 		void						broadcast_mode_changes(int client_fd, const std::string& channel, const std::string& applied_modes, const std::string& applied_params);
 		void						transfer_operator_on_disconnect(int disconnecting_fd);
+		bool 						handle_invite_mode(int client_fd, const std::string& channel, bool adding);
+    	bool 						handle_limit_mode(int client_fd, const std::string& channel, bool adding, std::istringstream& iss, std::string& param);
+		void 						handle_invite_command(int client_fd, std::istringstream& iss);
+		void 						handle_kick_command(int client_fd, std::istringstream& iss);
 
 		////PRIVMSG
 		bool	is_existing_receiver(std::string &receiver);

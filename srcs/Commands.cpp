@@ -1,6 +1,6 @@
 #include "ft_irc.hpp"
 
-// send_error_mess(client_fd, ERR_UNKNOWNCOMMAND, "Unknown command", command);)
+// send_error_mess(client_fd, ERR_UNKNOWNCOMMAND, "Unknown command", command);) 
 
 void	Server_class::parse_and_execute_command(int client_fd, const std::string& complete_message)
 {
@@ -21,6 +21,10 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 		handle_topic_command(client_fd, iss);
 	else if (command == "WHO")
 		handle_who_command(client_fd, iss);
+	else if (command == "INVITE")
+        handle_invite_command(client_fd, iss);
+	 else if (command == "KICK")
+        handle_kick_command(client_fd, iss);
     else if (command == "PING")
     {
         std::string token;
@@ -34,6 +38,117 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 		send_error_mess(client_fd, ERR_UNKNOWNCOMMAND, "UNKNOW COMMAND");
 	}
     
+}
+// KICK <channel> <user> [:<reason>]
+void Server_class::handle_kick_command(int client_fd, std::istringstream& iss)
+{
+    std::string channel_name;
+	std::string reason;
+	std::string target_nick;
+	int target_fd;
+    std::string kick_msg;
+
+    if (!(iss >> channel_name >> target_nick))
+    {
+        send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "KICK");
+        return;
+    }
+    std::getline(iss, reason);
+    if (!reason.empty() && reason[0] == ' ') reason = reason.substr(1);
+    if (!reason.empty() && reason[0] == ':') reason = reason.substr(1);
+    if (reason.empty()) reason = this->clients[client_fd].get_nickname();
+    
+    if (!is_existing_channel(channel_name))
+    {
+        send_error_mess(client_fd, ERR_NOSUCHCHANNEL, "No such channel", channel_name);
+        return;
+    }
+    if (!this->channels[channel_name].is_client_in_channel(client_fd))
+    {
+        send_error_mess(client_fd, ERR_NOTONCHANNEL, "You're not on that channel", channel_name);
+        return;
+    }
+    if (!is_channel_operator(client_fd, channel_name))
+    {
+        send_error_mess(client_fd, ERR_CHANOPRIVSNEEDED, "You're not channel operator", channel_name);
+        return;
+    }
+    target_fd = is_existing_client(target_nick);
+    if (target_fd == -1)
+    {
+        send_error_mess(client_fd, ERR_NOSUCHNICK, "No such nick", target_nick);
+        return;
+    }
+    if (!this->channels[channel_name].is_client_in_channel(target_fd))
+    {
+        send_error_mess(client_fd, ERR_USERNOTINCHANNEL, target_nick + " is not on channel", channel_name);
+        return;
+    }
+    kick_msg = ":" + get_client_prefix(this->clients[client_fd]) + " KICK " + channel_name + " " + target_nick + " :" + reason + "\r\n";
+    std::vector<int>::iterator it;
+    for (it = this->channels[channel_name].Clients.begin(); it != this->channels[channel_name].Clients.end(); ++it)
+        send(*it, kick_msg.c_str(), kick_msg.length(), 0);
+
+    it = std::find(this->channels[channel_name].Clients.begin(), this->channels[channel_name].Clients.end(),target_fd);
+    if (it != this->channels[channel_name].Clients.end())
+        this->channels[channel_name].Clients.erase(it);
+    
+    it = std::find(this->channels[channel_name].Operators.begin(), this->channels[channel_name].Operators.end(), target_fd);
+    if (it != this->channels[channel_name].Operators.end())
+        this->channels[channel_name].Operators.erase(it);
+ 
+    if (this->channels[channel_name].Clients.empty())
+        this->channels.erase(channel_name);
+    
+    server_history(this->clients[client_fd].get_nickname() + " kicked " + target_nick + " from " + channel_name);
+}
+
+void Server_class::handle_invite_command(int client_fd, std::istringstream& iss)
+{
+    std::string target_nick, channel_name;
+	int target_fd;
+    
+    if (!(iss >> target_nick >> channel_name))
+    {
+        send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "INVITE");
+        return;
+    }
+    if (!is_existing_channel(channel_name))
+    {
+        send_error_mess(client_fd, ERR_NOSUCHCHANNEL, "No such channel", channel_name);
+        return;
+    }
+    if (!this->channels[channel_name].is_client_in_channel(client_fd))
+    {
+        send_error_mess(client_fd, ERR_NOTONCHANNEL, "You're not on that channel", channel_name);
+        return;
+    }
+    if (this->channels[channel_name].invite_only && !is_channel_operator(client_fd, channel_name))
+    {
+        send_error_mess(client_fd, ERR_CHANOPRIVSNEEDED, "You're not channel operator", channel_name);
+        return;
+    }
+    target_fd = is_existing_client(target_nick);
+    if (target_fd == -1)
+    {
+        send_error_mess(client_fd, ERR_NOSUCHNICK, "No such nick", target_nick);
+        return;
+    }
+    if (this->channels[channel_name].is_client_in_channel(target_fd))
+    {
+        send_error_mess(client_fd, ERR_USERONCHANNEL, target_nick + " is already on channel", channel_name);
+        return;
+    }
+    if (!this->channels[channel_name].is_client_invited(target_fd))
+        this->channels[channel_name].invited_users.push_back(target_fd);
+		
+    std::string invite_msg = ":" + get_client_prefix(this->clients[client_fd]) + " INVITE " + target_nick + " :" + channel_name + "\r\n";
+    send(target_fd, invite_msg.c_str(), invite_msg.length(), 0);
+
+    std::string confirm_msg = ":" + server_name + " 341 " + this->clients[client_fd].get_nickname() + " " + target_nick + " " + channel_name + "\r\n";
+    send(client_fd, confirm_msg.c_str(), confirm_msg.length(), 0);
+
+    server_history(this->clients[client_fd].get_nickname() + " invited " + target_nick + " to " + channel_name);
 }
 
 void Server_class::handle_mode_command(int client_fd, std::istringstream& iss) //is bare minimum to make it work for now
@@ -90,146 +205,6 @@ void Server_class::handle_mode_command(int client_fd, std::istringstream& iss) /
         return;
     }
     apply_channel_modes(client_fd, channel, mode_string, iss);
-}
-
-
-//so handle only +o, -o, +k, -k, +t, -t for now
-
-void Server_class::apply_channel_modes(int client_fd, const std::string& channel, const std::string& mode_string, std::istringstream& iss) 
-{
-    bool adding = true;
-    std::string applied_modes = "";
-    std::string applied_params = "";
-    
-    for (size_t i = 0; i < mode_string.length(); i++)
-    {
-        char mode = mode_string[i];
-        
-        if (mode == '+')
-        {
-            adding = true;
-            if (applied_modes.empty() || applied_modes[applied_modes.length()-1] != '+')
-                applied_modes += '+';
-            continue;
-        }
-        else if (mode == '-')
-        {
-            adding = false;
-            if (applied_modes.empty() || applied_modes[applied_modes.length()-1] != '-')
-                applied_modes += '-';
-            continue;
-        }
-        std::string param = "";
-        if (process_single_mode(client_fd, channel, mode, adding, iss, param))
-        {
-            applied_modes += mode;
-            if (!param.empty())
-                applied_params += " " + param;
-        }
-    }
-    broadcast_mode_changes(client_fd, channel, applied_modes, applied_params);
-}
-
-bool Server_class::process_single_mode(int client_fd, const std::string& channel, char mode, bool adding, std::istringstream& iss, std::string& param)
-{
-    switch (mode)
-    {
-        case 'o':
-            return handle_operator_mode(client_fd, channel, adding, iss, param);
-        case 'k':
-            return handle_key_mode(client_fd, channel, adding, iss, param);
-        case 't':
-            return handle_topic_mode(client_fd, channel, adding);
-        default:
-            send_error_mess(client_fd, ERR_UNKNOWNMODE, std::string("Unknown mode character: ") + mode);
-            return false;
-    }
-}
-
-bool Server_class::handle_operator_mode(int client_fd, const std::string& channel, bool adding, std::istringstream& iss, std::string& param)
-{
-    std::string target_nick;
-    if (!(iss >> target_nick))
-    {
-        send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters for +/-o");
-        return false;
-    }
-    int target_fd = is_existing_client(target_nick);
-    if (target_fd == -1)
-    {
-        send_error_mess(client_fd, ERR_NOSUCHNICK, "No such nick", target_nick);
-        return false;
-    }
-    if (!this->channels[channel].is_client_in_channel(target_fd))
-    {
-        send_error_mess(client_fd, ERR_USERNOTINCHANNEL, target_nick + " is not on channel", channel);
-        return false;
-    }
-    if (adding)
-    {
-        if (!is_channel_operator(target_fd, channel))
-			this->channels[channel].Operators.push_back(target_fd);
-    }
-    else
-    {
-        remove_operator_status(target_fd, channel);
-    }
-    param = target_nick;
-    return true;
-}
-
-bool Server_class::handle_key_mode(int client_fd, const std::string& channel, bool adding, std::istringstream& iss,std::string& param)
-{
-    if (adding)
-    {
-        std::string key;
-        if (!(iss >> key))
-        {
-            send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters for +k");
-            return false;
-        }
-        this->channels[channel].password = key;
-        this->channels[channel].has_password = true;
-        param = key;
-    }
-    else
-    {
-        this->channels[channel].has_password = false;
-        this->channels[channel].password.clear();
-    }
-    return true;
-}
-
-bool Server_class::handle_topic_mode(int client_fd, const std::string& channel, bool adding)
-{
-    (void)client_fd;
-    this->channels[channel].topic_restricted = adding;
-    return true;
-}
-
-void Server_class::remove_operator_status(int target_fd, const std::string& channel)
-{
-    std::vector<int>::iterator it;
-    for (it = this->channels[channel].Operators.begin(); 
-         it != this->channels[channel].Operators.end(); ++it)
-    {
-        if (*it == target_fd)
-        {
-            this->channels[channel].Operators.erase(it);
-            break;
-        }
-    }
-}
-
-void Server_class::broadcast_mode_changes(int client_fd, const std::string& channel, const std::string& applied_modes, const std::string& applied_params)
-{
-    if (applied_modes.empty() || applied_modes == "+" || applied_modes == "-")
-        return;
-    
-    std::string mode_msg = ":" + get_client_prefix(this->clients[client_fd]) + " MODE " + channel + " " + applied_modes + applied_params + "\r\n";
-    send_message_to_channel(client_fd, channel, mode_msg);
-    send(client_fd, mode_msg.c_str(), mode_msg.length(), 0);
-    server_history("MODE " + channel + " " + applied_modes + applied_params + " by " + this->clients[client_fd].get_nickname());
 }
 
 void	Server_class::handle_priv_command(int client_fd, std::istringstream& iss)

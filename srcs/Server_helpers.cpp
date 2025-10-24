@@ -44,7 +44,7 @@ void Server_class::send_error_mess(int client_fd, int numeric, const std::string
 	oss << " :" << message << "\r\n";
 	
 	std::string response = oss.str();
-	std::cout << response << std::endl;
+	// std::cout << response << std::endl; //debug line 
 	std::stringstream iss;
 	iss << client_fd;
 	send(client_fd, response.c_str(), response.length(), 0);

@@ -6,9 +6,11 @@ Channel::Channel()
 	created = false;
 	has_password = false;
 	topic_restricted = true;
+	invite_only = false;
+    user_limit = 0;  
 }
 
-void	Server_class::Join_channel(int client_fd, std::string channel_name, std::vector<std::string> &keys)
+void	Server_class::Join_channel(int client_fd, std::string channel_name, std::vector<std::string> &keys) 
 {
 	std::vector<std::string>::iterator it;
 
@@ -30,6 +32,30 @@ void	Server_class::Join_channel(int client_fd, std::string channel_name, std::ve
 	}
 	else ///channel alredy exist
 	{
+		if (this->channels[channel_name].is_client_in_channel(client_fd))
+			return;
+		if (this->channels[channel_name].invite_only)
+		{
+			if (!this->channels[channel_name].is_client_invited(client_fd))
+			{
+				send_error_mess(client_fd, ERR_INVITEONLYCHAN, 
+				               "Cannot join channel (+i)", channel_name);
+				return;
+			}
+			std::vector<int>::iterator inv_it = std::find(this->channels[channel_name].invited_users.begin(),this->channels[channel_name].invited_users.end(),client_fd);
+			if (inv_it != this->channels[channel_name].invited_users.end())
+			{
+				this->channels[channel_name].invited_users.erase(inv_it);
+			}
+		}
+		if (this->channels[channel_name].user_limit > 0)
+		{
+			if ((int)this->channels[channel_name].Clients.size() >= this->channels[channel_name].user_limit)
+			{
+				send_error_mess(client_fd, ERR_CHANNELISFULL, "Cannot join channel (+l)", channel_name);
+				return;
+			}
+		}
 		if (!keys.empty() && this->channels[channel_name].has_password == true)
 		{
 			if (this->channels[channel_name].password == *keys.begin())
