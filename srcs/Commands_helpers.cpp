@@ -51,8 +51,7 @@ bool Server_class::is_existing_channel(const std::string &receiver)
 bool Server_class::is_channel_operator(int client_fd, const std::string& channel)
 {
     std::vector<int>::iterator it;
-    for (it = this->channels[channel].Operators.begin(); 
-         it != this->channels[channel].Operators.end(); ++it)
+    for (it = this->channels[channel].Operators.begin(); it != this->channels[channel].Operators.end(); ++it)
     {
         if (*it == client_fd)
             return true;

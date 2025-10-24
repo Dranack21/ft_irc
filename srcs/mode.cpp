@@ -111,68 +111,43 @@ bool Server_class::handle_key_mode(int client_fd, const std::string& channel, bo
     return true;
 }
 
-bool Server_class::handle_invite_mode(int client_fd, const std::string& channel, 
-                                      bool adding)
+bool Server_class::handle_invite_mode(int client_fd, const std::string& channel, bool adding)
 {
     (void)client_fd;
     this->channels[channel].invite_only = adding;
     return true;
 }
 
-bool Server_class::handle_limit_mode(int client_fd, const std::string& channel, 
-                                     bool adding, std::istringstream& iss, 
-                                     std::string& param)
+bool Server_class::handle_limit_mode(int client_fd, const std::string& channel, bool adding, std::istringstream& iss, std::string& param)
 {
+    char* endptr;
+    long limit;
+
     if (adding)
     {
         std::string limit_str;
         if (!(iss >> limit_str))
         {
-            send_error_mess(client_fd, ERR_NEEDMOREPARAMS, 
-                          "Not enough parameters for +l");
+            send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters for +l");
             return false;
         }
         
-        // Validate that limit_str is a positive number
-        char* endptr;
-        long limit = strtol(limit_str.c_str(), &endptr, 10);
+        limit = strtol(limit_str.c_str(), &endptr, 10);
         
         if (*endptr != '\0' || limit <= 0 || limit > 999)
         {
-            send_error_mess(client_fd, ERR_UNKNOWNERROR, 
-                          "Invalid limit value (must be 1-999)");
+            send_error_mess(client_fd, ERR_UNKNOWNERROR, "Invalid limit value (must be 1-999)");
             return false;
         }
-        
         this->channels[channel].user_limit = (int)limit;
         param = limit_str;
     }
     else
     {
-        // -l removes the limit
         this->channels[channel].user_limit = 0;
     }
     return true;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 bool Channel::is_client_invited(int client_fd)

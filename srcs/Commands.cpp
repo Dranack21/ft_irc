@@ -99,7 +99,7 @@ void Server_class::handle_kick_command(int client_fd, std::istringstream& iss)
  
     if (this->channels[channel_name].Clients.empty())
         this->channels.erase(channel_name);
-    
+    transfer_operator_on_disconnect(client_fd);
     server_history(this->clients[client_fd].get_nickname() + " kicked " + target_nick + " from " + channel_name);
 }
 
