@@ -79,7 +79,8 @@ void	Server_class::Accept_and_poll()
         }
 		if (this->pollfd_vector[0].revents & POLLIN)
 		{
-			client_fd = accept(this->Server_socket , NULL, NULL);	
+			client_fd = accept(this->Server_socket , NULL, NULL);
+	
 			client_pollfd.fd = client_fd;
 			client_pollfd.events = POLLIN;
 			client_pollfd.revents = 0;

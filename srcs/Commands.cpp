@@ -103,6 +103,7 @@ void Server_class::handle_kick_command(int client_fd, std::istringstream& iss)
     server_history(this->clients[client_fd].get_nickname() + " kicked " + target_nick + " from " + channel_name);
 }
 
+///invite <client> <channel>
 void Server_class::handle_invite_command(int client_fd, std::istringstream& iss)
 {
     std::string target_nick, channel_name;
