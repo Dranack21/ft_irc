@@ -13,6 +13,7 @@ Server_class::Server_class() : server_name("ft_irc.42.fr"), server_version("1.0"
 	signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
     signal(SIGQUIT, signal_handler);
+	this->create_bot();
 }
 
 Server_class::~Server_class()

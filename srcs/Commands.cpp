@@ -242,11 +242,16 @@ void	Server_class::handle_priv_command(int client_fd, std::istringstream& iss)
 		receiver_fd = (is_existing_client(*it));
 		if (receiver_fd != -1)
 		{
-			std::string formatted = ":" + client_sender_nick + "!~" + this->clients[client_fd].get_username() + "@localhost PRIVMSG " + *it + " :" + message;
-			send(receiver_fd, formatted.c_str(), formatted.size(), 0);
-			std::cout << "Client fd: " << receiver_fd << std::endl;
-			std::cout <<  "message: " << message << std::endl;
-			server_history("Relaying message from " + client_sender_nick + " to " + *it);
+			if  (receiver_fd == -2)
+				handle_bot_message(client_fd, message);
+			else
+			{
+				std::string formatted = ":" + client_sender_nick + "!~" + this->clients[client_fd].get_username() + "@localhost PRIVMSG " + *it + " :" + message;
+				send(receiver_fd, formatted.c_str(), formatted.size(), 0);
+				std::cout << "Client fd: " << receiver_fd << std::endl;
+				std::cout <<  "message: " << message << std::endl;
+				server_history("Relaying message from " + client_sender_nick + " to " + *it);
+			}
 		}
 		else if (is_existing_channel(*it))
 		{

@@ -15,7 +15,8 @@ SRCS    = main.cpp \
 			srcs/Client_helpers.cpp\
 			srcs/Commands_helpers.cpp\
 			srcs/Channels_helpers.cpp\
-			srcs/mode.cpp
+			srcs/mode.cpp\
+			srcs/bot.cpp
 			
 ### OBJS ###########################################################################
 
