@@ -99,6 +99,7 @@ struct Channel
 	bool						is_client_in_channel(int client_fd);
 	bool						is_client_operator(int client_fd);
 	bool						is_client_invited(int client_fd);
+	bool						is_channel_empty();
 };
 
 class Client    
@@ -188,10 +189,10 @@ class Server_class
 		void	play_bot(int client_fd, const std::string &message);
 		void 	create_bot();
 	
-
 		void	check_registration_complete(int client_fd);
 		bool	is_nickname_in_use(const std::string& nickname);
 		bool	is_valid_nickname(const std::string& nickname);
+		bool	is_valid_mode_string(int client_fd, std::string &mode_string);
 
 		std::string	get_client_prefix(const Client& client);
 		std::string	to_upper(const std::string& str);

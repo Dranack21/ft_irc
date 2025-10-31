@@ -99,7 +99,6 @@ void Server_class::handle_kick_command(int client_fd, std::istringstream& iss)
  
     if (this->channels[channel_name].Clients.empty())
         this->channels.erase(channel_name);
-    transfer_operator_on_disconnect(client_fd);
     server_history(this->clients[client_fd].get_nickname() + " kicked " + target_nick + " from " + channel_name);
 }
 
@@ -182,20 +181,15 @@ void Server_class::handle_mode_command(int client_fd, std::istringstream& iss) /
     // Channel mode
     std::string channel = target;
     if (!is_existing_channel(channel))
-    {
-        send_error_mess(client_fd, ERR_NOSUCHCHANNEL, "No such channel", channel);
-        return;
-    }
+		return(send_error_mess(client_fd, ERR_NOSUCHCHANNEL, "No such channel", channel));    
     if (!this->channels[channel].is_client_in_channel(client_fd))
-    {
-        send_error_mess(client_fd, ERR_NOTONCHANNEL, "You're not on that channel", channel);
-        return;
-    }
-    std::string mode_string;
+		return(send_error_mess(client_fd, ERR_NOTONCHANNEL, "You're not on that channel", channel));
+	
+	std::string mode_string;
     iss >> mode_string;
     if (mode_string.empty())
     {
-        std::string mode_response = build_channel_mode_string(channel);
+        std::string mode_response = build_channel_mode_string(channel);	
         std::string response = ":" + server_name + " 324 " + this->clients[client_fd].get_nickname() + " " + channel + " " + mode_response + "\r\n";
         send(client_fd, response.c_str(), response.length(), 0);
         return;
@@ -205,7 +199,20 @@ void Server_class::handle_mode_command(int client_fd, std::istringstream& iss) /
         send_error_mess(client_fd, ERR_CHANOPRIVSNEEDED, "You're not channel operator", channel);
         return;
     }
+	if (is_valid_mode_string(client_fd, mode_string) == false)
+		return ;
+	if (mode_string == "b")
+		return ;
     apply_channel_modes(client_fd, channel, mode_string, iss);
+}
+
+bool	Server_class::is_valid_mode_string(int client_fd, std::string &mode_string)
+{
+	if (mode_string.find_first_not_of("+-likobt") == std::string::npos)
+		return true;
+	send_error_mess(client_fd, 472,  mode_string + ":Unknowm mode" + mode_string + "\r\n");
+	client_fd = client_fd + 0;
+	return false;
 }
 
 void	Server_class::handle_priv_command(int client_fd, std::istringstream& iss)
@@ -460,25 +467,28 @@ void Server_class::handle_quit_command(int client_fd, std::istringstream &iss)
 	std::vector<int>::iterator client_it;
 	std::vector<int>::iterator operator_it;
 	std::map<std::string, Channel>::iterator channel_it;
+	std::string buffer;
 
+	if (iss >> message)
+		server_history(message);
 	channel_it = this->channels.begin();
 	while (channel_it != channels.end())
 	{
 		client_it = std::find(channel_it->second.Clients.begin(), channel_it->second.Clients.end(), client_fd);
 		if (client_it != channel_it->second.Clients.end())
+		{
+			buffer = ":" + this->clients[client_fd].get_nickname() + "!" +this->clients[client_fd].get_username()+ "@ft_irc.42.fr" + " QUIT " +message + "\r\n";
+			std::cout << buffer << std::endl;
+			send_message_to_channel(client_fd, channel_it->second.name, buffer);
 			channel_it->second.Clients.erase(client_it);
-		
-		// operator_it = std::find(channel_it->second.Operators.begin(), channel_it->second.Operators.end(), client_fd);
-		// if (operator_it != channel_it->second.Operators.end())
-		//     channel_it->second.Operators.erase(operator_it);
+		}
+		operator_it = std::find(channel_it->second.Operators.begin(), channel_it->second.Operators.end(), client_fd);
+		if (operator_it != channel_it->second.Operators.end())
+		    channel_it->second.Operators.erase(operator_it);
 		
 		channel_it++;
 	}
-	transfer_operator_on_disconnect(client_fd);
-	
 	this->clients.erase(client_fd);
-	if (iss >> message)
-		server_history(message);
 }
 
 

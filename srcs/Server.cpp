@@ -123,7 +123,6 @@ void Server_class::process_client_activity()
 						if (client_it != chan_it->second.Clients.end())
 							chan_it->second.Clients.erase(client_it);
 					}
-					transfer_operator_on_disconnect(disconnecting_fd);
 					close(this->pollfd_vector[i].fd);
 					this->clients.erase(this->pollfd_vector[i].fd);
 					this->pollfd_vector.erase(this->pollfd_vector.begin() + i);
@@ -131,6 +130,7 @@ void Server_class::process_client_activity()
 				}
                 else
                 {
+					std::cout << buffer << std::endl;
                     this->handle_message(this->pollfd_vector[i].fd, std::string(buffer));
                 }
             }
@@ -196,6 +196,17 @@ void	Server_class::parse_for_register(int client_fd, const std::string& complete
 			try
 			{
 				parse_and_execute_command(client_fd, complete_message);
+				std::map<std::string, Channel>::iterator it = this->channels.begin();
+				while(it != this->channels.end())
+				{
+					if (it->second.is_channel_empty())
+					{
+						std::cout << "AUREVOIR CHANNEL " << it->second.name << std::endl;
+						this->channels.erase(it++);
+					}
+					else
+						++it;
+				}
 			}
 			catch (std::exception &e)
 			{

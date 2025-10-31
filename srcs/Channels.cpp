@@ -8,6 +8,7 @@ Channel::Channel()
 	topic_restricted = true;
 	invite_only = false;
     user_limit = 0;  
+	name = "feur";
 }
 
 void	Server_class::Join_channel(int client_fd, std::string channel_name, std::vector<std::string> &keys) 
@@ -16,6 +17,7 @@ void	Server_class::Join_channel(int client_fd, std::string channel_name, std::ve
 
 	if (this->channels.empty() || this->channels[channel_name].created == false)
 	{
+		this->channels[channel_name].name = channel_name;
 		this->channels[channel_name].created = true;
 		this->channels[channel_name].Operators.push_back(client_fd);
 		this->channels[channel_name].Clients.push_back(client_fd);
@@ -91,6 +93,7 @@ void	Server_class::send_message_to_channel(int client_fd, const std::string &cha
 		{
 			if (*it2 != client_fd)
 			{
+				std::cout << "SENT CLIENT " << *it2 << buffer << std::endl;
 				send(*it2, buffer.c_str(), buffer.size(), 0);
 				if (buffer.find(" MODE ") != std::string::npos || buffer.find(" JOIN ") != std::string::npos)
 				{

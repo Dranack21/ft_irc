@@ -46,7 +46,7 @@ bool	check_if_valid_channel_name(std::string name)
 {
 	size_t pos;
 
-	if (name.empty() || (name[0] != '&' && name[0] != '#'))
+	if (name.empty() || (name[0] != '#'))
 		return false;
 	pos = name.find(' ');
 	if (pos != std::string::npos)
@@ -122,4 +122,11 @@ void Server_class::broadcast_names_to_channel(const std::string& channel_name)
                               channel_name + " :End of /NAMES list\r\n";
         send(*it, endnames.c_str(), endnames.length(), 0);
     }
+}
+
+bool Channel::is_channel_empty()
+{
+    if(this->Clients.size() == 0 && this->Operators.size() == 0)
+        return true;
+    return false;
 }

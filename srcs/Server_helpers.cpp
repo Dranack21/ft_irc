@@ -213,11 +213,13 @@ void Server_class::transfer_operator_on_disconnect(int disconnecting_fd)
             if (*op_it == disconnecting_fd)
             {
                 chan_it->second.Operators.erase(op_it);
+				std::cout << "erased op from operator vector\n";
                 break;
             }
         }
         if (chan_it->second.Operators.empty() && !chan_it->second.Clients.empty())
         {
+			std::cout << "EEEE\n";
             int new_op_fd = chan_it->second.Clients[0];
             chan_it->second.Operators.push_back(new_op_fd);
             std::string mode_msg = ":" + server_name + " MODE " + chan_it->first + " +o " + this->clients[new_op_fd].get_nickname() + "\r\n";
