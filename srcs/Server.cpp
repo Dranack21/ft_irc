@@ -179,7 +179,12 @@ void	Server_class::parse_for_register(int client_fd, const std::string& complete
 	else if (command == "PING")//this is for irssi client to not get disconnected after a while 
 		handle_ping_command(client_fd, iss);
 	else if (command == "CAP")
-		send(client_fd, ":myserver CAP * LS :\r\n", strlen(":myserver CAP * LS :\r\n"), 0);
+	{
+		std::string subcmd;
+		iss >> subcmd;
+		if (to_upper(subcmd) == "LS")
+			send(client_fd, ":myserver CAP * LS :\r\n", strlen(":myserver CAP * LS :\r\n"), 0);
+	}
 	else
 	{
 		if (!this->clients[client_fd].is_fully_authenticated())
