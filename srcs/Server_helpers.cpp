@@ -150,7 +150,8 @@ void Server_class::shutdown_server() //function to shutdown the server to not ge
     for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
         send(it->first, quit_message.c_str(), quit_message.length(), 0);
-        close(it->first);
+		if (it->first != -2)
+        	close(it->first);
         std::cout << "Closed connection to client fd " << it->first << std::endl;
     }
     clients.clear();
