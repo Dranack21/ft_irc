@@ -183,7 +183,6 @@ class Server_class
 		void	handle_topic_command(int client_fd, std::istringstream& iss);
 		void	handle_quit_command(int client_fd, std::istringstream& iss);
 		void	handle_who_command(int client_fd, std::istringstream& iss);
-		void	end_of_whois(int client_fd);
 
 		void	handle_bot_message(int client_fd, const std::string &message);
 		void	play_bot(int client_fd, const std::string &message);

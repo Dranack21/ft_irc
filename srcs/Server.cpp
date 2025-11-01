@@ -106,35 +106,35 @@ void Server_class::process_client_activity()
 	std::vector<int>::iterator client_it;
 
 	for (size_t i = 1; i < this->pollfd_vector.size(); i++)
-        {
-            if (this->pollfd_vector[i].revents & (POLLIN | POLLHUP | POLLERR))
-            {
-				memset(buffer, 0, sizeof(buffer));
-                bytes_received = recv(this->pollfd_vector[i].fd, buffer, sizeof(buffer) - 1, 0);
+	{
+		if (this->pollfd_vector[i].revents & (POLLIN | POLLHUP | POLLERR))
+		{
+			memset(buffer, 0, sizeof(buffer));
+			bytes_received = recv(this->pollfd_vector[i].fd, buffer, sizeof(buffer) - 1, 0);
 
-                if (bytes_received <= 0 || this->pollfd_vector[i].revents & (POLLHUP | POLLERR))
+			if (bytes_received <= 0 || this->pollfd_vector[i].revents & (POLLHUP | POLLERR))
+			{
+				std::cout << "Client disconnected: fd " << this->pollfd_vector[i].fd << std::endl;
+				disconnecting_fd = this->pollfd_vector[i].fd;
+				std::map<std::string, Channel>::iterator chan_it;
+				for (chan_it = this->channels.begin(); chan_it != this->channels.end(); ++chan_it)
 				{
-					std::cout << "Client disconnected: fd " << this->pollfd_vector[i].fd << std::endl;
-					disconnecting_fd = this->pollfd_vector[i].fd;
-					std::map<std::string, Channel>::iterator chan_it;
-					for (chan_it = this->channels.begin(); chan_it != this->channels.end(); ++chan_it)
-					{
-						client_it = std::find(chan_it->second.Clients.begin(), chan_it->second.Clients.end(), disconnecting_fd);
-						if (client_it != chan_it->second.Clients.end())
-							chan_it->second.Clients.erase(client_it);
-					}
-					close(this->pollfd_vector[i].fd);
-					this->clients.erase(this->pollfd_vector[i].fd);
-					this->pollfd_vector.erase(this->pollfd_vector.begin() + i);
-					i--;
+					client_it = std::find(chan_it->second.Clients.begin(), chan_it->second.Clients.end(), disconnecting_fd);
+					if (client_it != chan_it->second.Clients.end())
+						chan_it->second.Clients.erase(client_it);
 				}
-                else
-                {
-					std::cout << buffer << std::endl;
-                    this->handle_message(this->pollfd_vector[i].fd, std::string(buffer));
-                }
-            }
-        }
+				close(this->pollfd_vector[i].fd);
+				this->clients.erase(this->pollfd_vector[i].fd);
+				this->pollfd_vector.erase(this->pollfd_vector.begin() + i);
+				i--;
+			}
+			else
+			{
+				std::cout << buffer << std::endl;
+				this->handle_message(this->pollfd_vector[i].fd, std::string(buffer));
+			}
+		}
+	}
 }
 
 //This function takes as argument the fd of a client and its message received by recv function
@@ -163,22 +163,22 @@ void	Server_class::parse_for_register(int client_fd, const std::string& complete
     iss >> command;
 
 	command = to_upper(command);
-	if ((command != "PASS" && command != "JOIN" && command != "CAP") && this->clients[client_fd].pass == false)
-	{
-		std::cout << "command :" << command << std::endl;
-		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "PASS");
-		disconnect_client(client_fd);
-		return ;
-	}
-	if (command == "PASS")
+	// if ((command != "PASS" && command != "JOIN" && command != "CAP") && this->clients[client_fd].pass == false)
+	// {
+	// 	std::cout << "command :" << command << std::endl;
+	// 	send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "PASS");
+	// 	disconnect_client(client_fd);
+	// 	return ;
+	// }
+	if (command == "PASS" || command == "/PASS")
 		handle_pass_command(client_fd, iss);
-	else if (command == "NICK")
+	else if (command == "NICK" || command == "/NICK")
 		handle_nick_command(client_fd, iss);
-	else if (command == "USER")
+	else if (command == "USER" || command == "/USER")
 		handle_user_command(client_fd, iss);
-	else if (command == "PING")//this is for irssi client to not get disconnected after a while 
+	else if (command == "PING" || command == "/PING")//this is for irssi client to not get disconnected after a while 
 		handle_ping_command(client_fd, iss);
-	else if (command == "CAP")
+	else if (command == "CAP" || command == "/CAP")
 	{
 		std::string subcmd;
 		iss >> subcmd;
@@ -201,7 +201,7 @@ void	Server_class::parse_for_register(int client_fd, const std::string& complete
 				{
 					if (it->second.is_channel_empty())
 					{
-						std::cout << "AUREVOIR CHANNEL " << it->second.name << std::endl;
+						std::cout << "Channel " << it->second.name << " is empty, deleting it" <<std::endl;
 						this->channels.erase(it++);
 					}
 					else

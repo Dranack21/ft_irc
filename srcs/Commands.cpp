@@ -7,25 +7,25 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 	std::istringstream iss(complete_message);
     std::string command;
     iss >> command;
-	if (command == "JOIN")
+	if (command == "JOIN" || command == "/JOIB")
 		handle_join_command(client_fd, iss);
-	else if (command == "PRIVMSG")
+	else if (command == "PRIVMSG" || command == "/PRIVMSG")
 		handle_priv_command(client_fd, iss);
-	else if (command == "QUIT")
+	else if (command == "QUIT" || command == "/QUIT")
 		handle_quit_command(client_fd, iss);
-	else if (command == "MODE")
+	else if (command == "MODE" || command == "/MODE")
 		handle_mode_command(client_fd, iss);
-	else if (command == "WHOIS")
+	else if (command == "WHOIS" || command == "/WHOIS")
 		handle_whois_command(client_fd, iss);
-	else if (command == "TOPIC")
+	else if (command == "TOPIC" || command == "/TOPIC")
 		handle_topic_command(client_fd, iss);
-	else if (command == "WHO")
+	else if (command == "WHO" || command == "/WHO")
 		handle_who_command(client_fd, iss);
-	else if (command == "INVITE")
+	else if (command == "INVITE" || command == "/INVITE")
         handle_invite_command(client_fd, iss);
-	 else if (command == "KICK")
+	 else if (command == "KICK" || command == "/KICK")
         handle_kick_command(client_fd, iss);
-    else if (command == "PING")
+    else if (command == "PING" || command == "/PING")
     {
         std::string token;
         iss >> token;
@@ -202,7 +202,7 @@ void Server_class::handle_mode_command(int client_fd, std::istringstream& iss) /
 	if (is_valid_mode_string(client_fd, mode_string) == false)
 		return ;
 	if (mode_string == "b")
-		return ;
+		return (send_error_mess(client_fd, 368, channel + "END OF WHOIS"));
     apply_channel_modes(client_fd, channel, mode_string, iss);
 }
 
@@ -311,13 +311,13 @@ void	Server_class::handle_pass_command(int client_fd, std::istringstream& iss)
 	this->clients[client_fd].pass = true;
 	if(!(iss >> password))
 	{
-		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "PASS");
+		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters closing the connection", "PASS");
 		disconnect_client(client_fd);
 		return;
 	}
 	if (password.empty())
 	{
-		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "PASS");
+		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters closing the connection", "PASS");
 		disconnect_client(client_fd);
 
 		return;
