@@ -7,7 +7,7 @@ void	Server_class::parse_and_execute_command(int client_fd, const std::string& c
 	std::istringstream iss(complete_message);
     std::string command;
     iss >> command;
-	if (command == "JOIN" || command == "/JOIB")
+	if (command == "JOIN" || command == "/JOIN")
 		handle_join_command(client_fd, iss);
 	else if (command == "PRIVMSG" || command == "/PRIVMSG")
 		handle_priv_command(client_fd, iss);
@@ -478,7 +478,6 @@ void Server_class::handle_quit_command(int client_fd, std::istringstream &iss)
 		if (client_it != channel_it->second.Clients.end())
 		{
 			buffer = ":" + this->clients[client_fd].get_nickname() + "!" +this->clients[client_fd].get_username()+ "@ft_irc.42.fr" + " QUIT " +message + "\r\n";
-			std::cout << buffer << std::endl;
 			send_message_to_channel(client_fd, channel_it->second.name, buffer);
 			channel_it->second.Clients.erase(client_it);
 		}

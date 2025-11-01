@@ -48,6 +48,7 @@ void Server_class::send_error_mess(int client_fd, int numeric, const std::string
 	std::stringstream iss;
 	iss << client_fd;
 	send(client_fd, response.c_str(), response.length(), 0);
+	// if (target != "modeb")
 	server_history("sent client " + iss.str() + " " + message);
 }
 
@@ -150,7 +151,7 @@ void Server_class::shutdown_server() //function to shutdown the server to not ge
     for (std::map<int, Client>::iterator it = clients.begin(); it != clients.end(); ++it)
     {
         send(it->first, quit_message.c_str(), quit_message.length(), 0);
-		if (it->first != -2)
+		if (it->first != -2 && it->second.get_fd() != -1)
         	close(it->first);
         std::cout << "Closed connection to client fd " << it->first << std::endl;
     }

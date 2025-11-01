@@ -130,7 +130,7 @@ void Server_class::process_client_activity()
 			}
 			else
 			{
-				std::cout << buffer << std::endl;
+				// std::cout << buffer << std::endl;
 				this->handle_message(this->pollfd_vector[i].fd, std::string(buffer));
 			}
 		}
@@ -163,13 +163,13 @@ void	Server_class::parse_for_register(int client_fd, const std::string& complete
     iss >> command;
 
 	command = to_upper(command);
-	// if ((command != "PASS" && command != "JOIN" && command != "CAP") && this->clients[client_fd].pass == false)
-	// {
-	// 	std::cout << "command :" << command << std::endl;
-	// 	send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "PASS");
-	// 	disconnect_client(client_fd);
-	// 	return ;
-	// }
+	if ((command != "PASS" && command != "JOIN" && command != "CAP") && this->clients[client_fd].pass == false)
+	{
+		std::cout << "command :" << command << std::endl;
+		send_error_mess(client_fd, ERR_NEEDMOREPARAMS, "Not enough parameters", "PASS");
+		disconnect_client(client_fd);
+		return ;
+	}
 	if (command == "PASS" || command == "/PASS")
 		handle_pass_command(client_fd, iss);
 	else if (command == "NICK" || command == "/NICK")
